@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Konvertues Recetë Syze → Lente Kontakti</title>
+<style>
+  :root {
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --bg: #f4f6fb;
+    --card: #ffffff;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+    --od: #2563eb;
+    --os: #059669;
+    --warn-bg: #fff7ed;
+    --warn-border: #fdba74;
+    --warn-text: #9a3412;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px 16px 60px;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; }
+  header {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  header h1 {
+    font-size: 1.5rem;
+    margin: 0 0 6px;
+    color: var(--primary-dark);
+  }
+  header p {
+    color: var(--muted);
+    margin: 0;
+    font-size: 0.95rem;
+  }
+  .card {
+    background: var(--card);
+    border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .settings-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-end;
+    margin-bottom: 4px;
+  }
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--muted);
+  }
+  .field input, .field select {
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    min-width: 90px;
+  }
+  .field input:focus, .field select:focus {
+    outline: 2px solid var(--primary);
+    outline-offset: 1px;
+  }
+  .eyes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 620px) {
+    .eyes-grid { grid-template-columns: 1fr; }
+  }
+  .eye-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .eye-card.od { border-top: 4px solid var(--od); }
+  .eye-card.os { border-top: 4px solid var(--os); }
+  .eye-card h2 {
+    font-size: 1.05rem;
+    margin: 0 0 12px;
+  }
+  .eye-card.od h2 { color: var(--od); }
+  .eye-card.os h2 { color: var(--os); }
+  .eye-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+  }
+  .eye-fields .field input { width: 100%; }
+  .actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    margin: 24px 0;
+    flex-wrap: wrap;
+  }
+  button {
+    font-size: 0.95rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 22px;
+    cursor: pointer;
+    transition: background 0.15s ease, transform 0.05s ease;
+  }
+  button:active { transform: scale(0.98); }
+  #calcBtn { background: var(--primary); color: white; }
+  #calcBtn:hover { background: var(--primary-dark); }
+  #clearBtn { background: #e5e7eb; color: var(--text); }
+  #clearBtn:hover { background: #d1d5db; }
+  #printBtn { background: #111827; color: white; }
+  #printBtn:hover { background: #000; }
+  .results { display: none; }
+  .results.show { display: block; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 8px;
+  }
+  th, td {
+    text-align: center;
+    padding: 10px 8px;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.95rem;
+  }
+  th { color: var(--muted); font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.02em; }
+  td.eye-label { text-align: left; font-weight: 700; }
+  tr.od td.eye-label { color: var(--od); }
+  tr.os td.eye-label { color: var(--os); }
+  .result-main { font-weight: 700; font-size: 1.05rem; }
+  .result-sub { color: var(--muted); font-size: 0.8rem; }
+  .warn {
+    background: var(--warn-bg);
+    border: 1px solid var(--warn-border);
+    color: var(--warn-text);
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    margin-top: 12px;
+  }
+  .disclaimer {
+    font-size: 0.82rem;
+    color: var(--muted);
+    text-align: center;
+    line-height: 1.5;
+    margin-top: 28px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+  .formula-note {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-top: 10px;
+    line-height: 1.5;
+  }
+  @media print {
+    .actions, .settings-row, .eyes-grid, .formula-note { display: none !important; }
+    body { background: white; padding: 0; }
+    .card { box-shadow: none; border: 1px solid #ccc; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Konvertues Recetë Syze → Lente Kontakti</h1>
+    <p>Llogarit fuqinë e lenteve të kontaktit nga receta e syzeve, duke korrigjuar distancën e vertex-it</p>
+  </header>
+
+  <div class="card">
+    <div class="settings-row">
+      <div class="field">
+        <label for="vertex">Distanca e Vertex-it (mm)</label>
+        <input type="number" id="vertex" value="12" step="0.5" min="0" max="20">
+      </div>
+      <div class="field">
+        <label for="cylConv">Konventa e cilindrit</label>
+        <select id="cylConv">
+          <option value="minus" selected>Cilindër negativ (standarde)</option>
+          <option value="plus">Cilindër pozitiv</option>
+        </select>
+      </div>
+    </div>
+    <p class="formula-note">Distanca standarde e vertex-it për syze është ~12mm. Nëse e njihni distancën e saktë të matur, përdorni atë për rezultat më të saktë.</p>
+  </div>
+
+  <div class="card">
+    <div class="eyes-grid">
+      <div class="eye-card od">
+        <h2>Syri i djathtë (OD)</h2>
+        <div class="eye-fields">
+          <div class="field">
+            <label for="odS">Sferë (D)</label>
+            <input type="number" id="odS" step="0.25" placeholder="0.00">
+          </div>
+          <div class="field">
+            <label for="odC">Cilindër (D)</label>
+            <input type="number" id="odC" step="0.25" placeholder="0.00">
+          </div>
+          <div class="field">
+            <label for="odA">Aks (°)</label>
+            <input type="number" id="odA" step="1" min="0" max="180" placeholder="0">
+          </div>
+        </div>
+      </div>
+      <div class="eye-card os">
+        <h2>Syri i majtë (OS)</h2>
+        <div class="eye-fields">
+          <div class="field">
+            <label for="osS">Sferë (D)</label>
+            <input type="number" id="osS" step="0.25" placeholder="0.00">
+          </div>
+          <div class="field">
+            <label for="osC">Cilindër (D)</label>
+            <input type="number" id="osC" step="0.25" placeholder="0.00">
+          </div>
+          <div class="field">
+            <label for="osA">Aks (°)</label>
+            <input type="number" id="osA" step="1" min="0" max="180" placeholder="0">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="actions">
+    <button id="calcBtn">Llogarit</button>
+    <button id="clearBtn">Pastro</button>
+    <button id="printBtn">Printo rezultatin</button>
+  </div>
+
+  <div class="card results" id="resultsCard">
+    <h2 style="margin-top:0; font-size:1.05rem;">Rezultati — Fuqia e Lenteve të Kontaktit</h2>
+    <table>
+      <thead>
+        <tr>
+          <th style="text-align:left;">Syri</th>
+          <th>Sferë (D)</th>
+          <th>Cilindër (D)</th>
+          <th>Aks (°)</th>
+          <th>Ekuivalenti sferik (D)</th>
+        </tr>
+      </thead>
+      <tbody id="resultsBody"></tbody>
+    </table>
+    <div id="warnBox"></div>
+    <p class="formula-note">
+      Vlerat janë rrumbullakosur në hapin standard prej 0.25D (sferë/cilindër) dhe 5° (aks).
+      Ekuivalenti sferik = Sferë + Cilindër/2, i dobishëm nëse doni të thjeshtoni në lente sferike kur cilindri është i vogël (&lt; 0.75D).
+    </p>
+  </div>
+
+  <div class="disclaimer">
+    Ky mjet është ndihmës/organizativ dhe bazohet në formulën standarde të korrigjimit të distancës së vertex-it
+    (F<sub>lente</sub> = F<sub>syze</sub> / (1 − d·F<sub>syze</sub>)). Rezultatet duhet gjithmonë të verifikohen
+    dhe konfirmohen nga një optometrist/oftalmolog i kualifikuar përpara se t'i jepen lentet finale klientit.
+  </div>
+</div>
+
+<script>
+function round025(x) { return Math.round(x / 0.25) * 0.25; }
+function round5(x) { return Math.round(x / 5) * 5; }
+function fmtD(x) {
+  if (x === null || isNaN(x)) return '—';
+  const sign = x >= 0 ? '+' : '';
+  return sign + x.toFixed(2);
+}
+function normAxis(a) {
+  let n = a % 180;
+  if (n <= 0) n += 180;
+  return n;
+}
+
+function toMinusCylinder(S, C, A) {
+  if (C > 0) {
+    return { S: S + C, C: -C, A: normAxis(A + 90) };
+  }
+  return { S: S, C: C, A: normAxis(A) };
+}
+
+function vertexConvert(F, d_m) {
+  const denom = 1 - d_m * F;
+  if (Math.abs(denom) < 1e-6) return null;
+  return F / denom;
+}
+
+function calcEye(sVal, cVal, aVal, vertexMM, cylConv) {
+  let s = parseFloat(sVal); if (isNaN(s)) s = 0;
+  let c = parseFloat(cVal); if (isNaN(c)) c = 0;
+  let a = parseFloat(aVal); if (isNaN(a)) a = 0;
+
+  if (cylConv === 'plus' && c !== 0) {
+    const conv = toMinusCylinder(s, c, a);
+    s = conv.S; c = conv.C; a = conv.A;
+  } else {
+    a = normAxis(a);
+  }
+
+  const d_m = (parseFloat(vertexMM) || 0) / 1000;
+
+  const F1 = s;
+  const F2 = s + c;
+
+  const Fc1 = vertexConvert(F1, d_m);
+  const Fc2 = vertexConvert(F2, d_m);
+
+  if (Fc1 === null || Fc2 === null) {
+    return { error: true };
+  }
+
+  const clSphereRaw = Fc1;
+  const clCylRaw = Fc2 - Fc1;
+
+  const clSphere = round025(clSphereRaw);
+  const clCyl = round025(clCylRaw);
+  const clAxis = normAxis(round5(a));
+
+  const seCL = clSphereRaw + clCylRaw / 2;
+
+  const highPower = Math.abs(F1) >= 4 || Math.abs(F2) >= 4;
+
+  return {
+    error: false,
+    rounded: { S: clSphere, C: clCyl, A: clAxis },
+    se: seCL,
+    highPower: highPower
+  };
+}
+
+document.getElementById('calcBtn').addEventListener('click', function() {
+  const vertex = document.getElementById('vertex').value;
+  const cylConv = document.getElementById('cylConv').value;
+
+  const od = calcEye(
+    document.getElementById('odS').value,
+    document.getElementById('odC').value,
+    document.getElementById('odA').value,
+    vertex, cylConv
+  );
+  const os = calcEye(
+    document.getElementById('osS').value,
+    document.getElementById('osC').value,
+    document.getElementById('osA').value,
+    vertex, cylConv
+  );
+
+  const body = document.getElementById('resultsBody');
+  body.innerHTML = '';
+
+  function row(label, cls, res) {
+    const tr = document.createElement('tr');
+    tr.className = cls;
+    if (res.error) {
+      tr.innerHTML = '<td class="eye-label">' + label + '</td><td colspan="4">Fuqi shumë e lartë — kontrolloni vlerat</td>';
+      return tr;
+    }
+    tr.innerHTML =
+      '<td class="eye-label">' + label + '</td>' +
+      '<td class="result-main">' + fmtD(res.rounded.S) + '</td>' +
+      '<td class="result-main">' + (res.rounded.C === 0 ? '—' : fmtD(res.rounded.C)) + '</td>' +
+      '<td>' + (res.rounded.C === 0 ? '—' : res.rounded.A + '°') + '</td>' +
+      '<td>' + fmtD(res.se) + '</td>';
+    return tr;
+  }
+
+  body.appendChild(row('OD (djathtas)', 'od', od));
+  body.appendChild(row('OS (majtas)', 'os', os));
+
+  const warnBox = document.getElementById('warnBox');
+  let warnings = [];
+  if ((!od.error && od.highPower) || (!os.error && os.highPower)) {
+    warnings.push('Njëri sy ka fuqi ≥ 4.00D — korrigjimi i vertex-it është domethënës këtu; kontrolloni distancën e vertex-it të përdorur.');
+  }
+  if ((!od.error && Math.abs(od.rounded.C) > 0 && Math.abs(od.rounded.C) < 0.75) ||
+      (!os.error && Math.abs(os.rounded.C) > 0 && Math.abs(os.rounded.C) < 0.75)) {
+    warnings.push('Cilindri nën 0.75D shpesh mund të thjeshtohet në lente sferike duke përdorur ekuivalentin sferik.');
+  }
+  warnBox.innerHTML = warnings.length
+    ? warnings.map(w => '<div class="warn">' + w + '</div>').join('')
+    : '';
+
+  document.getElementById('resultsCard').classList.add('show');
+  document.getElementById('resultsCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+document.getElementById('clearBtn').addEventListener('click', function() {
+  ['odS','odC','odA','osS','osC','osA'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('vertex').value = 12;
+  document.getElementById('cylConv').value = 'minus';
+  document.getElementById('resultsCard').classList.remove('show');
+});
+
+document.getElementById('printBtn').addEventListener('click', function() {
+  if (!document.getElementById('resultsCard').classList.contains('show')) {
+    document.getElementById('calcBtn').click();
+  }
+  window.print();
+});
+</script>
+</body>
+</html>
