@@ -255,15 +255,23 @@
           <th>Sferë (D)</th>
           <th>Cilindër (D)</th>
           <th>Aks (°)</th>
-          <th>Ekuivalenti sferik (D)</th>
+          <th>Lente e rekomanduar</th>
         </tr>
       </thead>
       <tbody id="resultsBody"></tbody>
     </table>
     <div id="warnBox"></div>
     <p class="formula-note">
-      Vlerat janë rrumbullakosur në hapin standard prej 0.25D (sferë/cilindër) dhe 5° (aks).
-      Ekuivalenti sferik = Sferë + Cilindër/2, i dobishëm nëse doni të thjeshtoni në lente sferike kur cilindri është i vogël (&lt; 0.75D).
+      Sferë: rrumbullakosur në hapa prej 0.25D (deri ±6.00D) dhe 0.50D (mbi ±6.00D). Cilindër: rrumbullakosur te vlera reale e disponueshme
+      e lenteve toric në stok (0, -0.75, -1.25, -1.75, -2.25, -2.75, -3.25, -3.75, -4.25, -4.75, -5.25, -5.75). Aksi rrumbullakoset sipas
+      hapit të markës së rekomanduar (10° për shumicën, 5° për Biofinity XR Toric).
+    </p>
+    <p class="formula-note" style="margin-top:8px;">
+      <strong>Radha e prioritetit</strong> (bazuar në "Sygjerimet"): 1) TopVue Prime, 2) Air Optix plus HydraGlyde, 3) TopVue Air,
+      4) Bausch + Lomb ULTRA, 5) Acuvue Oasys, dhe Biofinity XR Toric si rasti i fundit (gamë më e gjerë). Mjeti jep gjithmonë deri 2 alternativa,
+      dhe zbaton rregullat e dyqanit: (a) nëse cilindri e detyron njërin sy te një markë më e gjerë, syri tjetër merr të njëjtën markë;
+      (b) nëse njëri sy është toric dhe tjetri sferik, marka sferike sugjerohet nga e njëjta familje si marka toric e zgjedhur;
+      (c) nëse njëri sy përshtatet vetëm me Biofinity XR Toric, syri tjetër merr Biofinity Toric nëse i mjafton gama e tij.
     </p>
   </div>
 
@@ -277,6 +285,133 @@
 <script>
 function round025(x) { return Math.round(x / 0.25) * 0.25; }
 function round5(x) { return Math.round(x / 5) * 5; }
+
+// Hapat reale të disponueshëm në stok (bazuar në sheet-in "Sygjerimet" të dyqanit):
+// Sferë: hapa 0.25D deri ±6.00D, pastaj hapa 0.50D nga ±6.50D deri ±20.00D
+// Cilindër: vetëm -0.75 / -1.25 / -1.75 / -2.25 / -2.75 / -3.25 / -3.75 / -4.25 / -4.75 / -5.25 / -5.75 (hapa 0.50D, minimumi 0.75D, max -5.75 nga Biofinity XR Toric)
+const CYL_CATALOG = [0, 0.75, 1.25, 1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75, 5.25, 5.75];
+
+// Marka të dyqanit, sipas "Sygjerimet" — radha e prioritetit (numri më i vogël = preferohet më parë).
+// "family" lidh markën toric me homologun e saj sferik (për Rregullën #2).
+const TORIC_BRANDS = [
+  { name: 'TopVue Prime for Astigmatism', family: 'TopVue Prime', sphereMin: -10.00, sphereMax: 8.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: 1 },
+  { name: 'Air Optix plus HydraGlyde for Astigmatism', family: 'Air Optix plus HydraGlyde', sphereMin: -10.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: 2 },
+  { name: 'TopVue Air for Astigmatism', family: 'TopVue Air', sphereMin: -12.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: 3 },
+  { name: 'Bausch + Lomb ULTRA for Astigmatism', family: 'Bausch + Lomb ULTRA', sphereMin: -9.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.75, axisStep: 10, priority: 4 },
+  { name: 'Acuvue Oasys for Astigmatism', family: 'Acuvue Oasys', sphereMin: -9.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.75, axisStep: 10, priority: 5 },
+  { name: 'Biofinity Toric', family: 'Biofinity', sphereMin: -10.00, sphereMax: 8.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: 50 },
+  { name: 'Biofinity XR Toric', family: 'Biofinity', sphereMin: -20.00, sphereMax: 20.00, cylMin: 0.75, cylMax: 5.75, axisStep: 5, priority: 99 }
+];
+
+const SPHERE_BRANDS = [
+  { name: 'TopVue Prime', family: 'TopVue Prime', sphereMin: -12.00, sphereMax: 8.00, priority: 1 },
+  { name: 'Air Optix plus HydraGlyde', family: 'Air Optix plus HydraGlyde', sphereMin: -12.00, sphereMax: 8.00, priority: 2 },
+  { name: 'TopVue Air', family: 'TopVue Air', sphereMin: -12.00, sphereMax: 8.00, priority: 3 },
+  { name: 'Biofinity', family: 'Biofinity', sphereMin: -12.00, sphereMax: 8.00, priority: 4 }
+  // "Bausch + Lomb ULTRA" dhe "Acuvue Oasys" s'kanë homolog sferik në stok, dhe "Carl Zeiss Contact Day 30 Compatic (6 lenses)" s'ka gamë të specifikuar ende.
+];
+
+function roundToStep(value, step) { return Math.round(value / step) * step; }
+
+function eligibleToricBrands(sphereRounded, cylMagRounded) {
+  if (cylMagRounded === 0) return [];
+  return TORIC_BRANDS.filter(b =>
+    cylMagRounded >= b.cylMin - 0.001 && cylMagRounded <= b.cylMax + 0.001 &&
+    sphereRounded >= b.sphereMin - 0.001 && sphereRounded <= b.sphereMax + 0.001
+  ).sort((a, b) => a.priority - b.priority);
+}
+
+function eligibleSphereBrands(sphereRounded) {
+  return SPHERE_BRANDS.filter(b =>
+    sphereRounded >= b.sphereMin - 0.001 && sphereRounded <= b.sphereMax + 0.001
+  ).sort((a, b) => a.priority - b.priority);
+}
+
+// Rregullat e dyqanit (nga "Sygjerimet"):
+// 1) Nëse cilindri i madh e detyron njërin sy te një markë më e gjerë, syri tjetër merr TË NJËJTËN markë.
+// 2) Nëse njëri sy është toric dhe tjetri sferik, marka sferike duhet të jetë e së njëjtës familje si marka toric e zgjedhur.
+// 3) Jepen gjithmonë 2 alternativa (kur ka mundësi).
+function pairBrandLogic(od, os) {
+  if (od.error || os.error) return { odAlts: [], osAlts: [], warning: null };
+
+  if (od.isToric && os.isToric) {
+    const odCands = eligibleToricBrands(od.rounded.S, od.cylMag);
+    const osCands = eligibleToricBrands(os.rounded.S, os.cylMag);
+
+    // Rregulla #4: nëse "Biofinity XR Toric" del si alternativë (1-a ose 2-ta) për një sy, por syri
+    // vetë (pavarësisht nga syri tjetër) përshtatet edhe me "Biofinity Toric" (gama e rregullt),
+    // zëvendëso XR me Biofinity Toric për atë sy specifik — mos e detyro në XR pa nevojë.
+    function substituteBiofinity(list, ownCands) {
+      return list.map(b => {
+        if (b.name === 'Biofinity XR Toric' && ownCands.some(c => c.name === 'Biofinity Toric')) {
+          return TORIC_BRANDS.find(x => x.name === 'Biofinity Toric');
+        }
+        return b;
+      });
+    }
+
+    const osNames = new Set(osCands.map(b => b.name));
+    const shared = odCands.filter(b => osNames.has(b.name));
+
+    if (!shared.length) {
+      const odList = odCands.slice(0, 2);
+      const osList = osCands.slice(0, 2);
+      return {
+        odAlts: substituteBiofinity(odList, odCands),
+        osAlts: substituteBiofinity(osList, osCands),
+        warning: 'S\'ka një markë të vetme që mbulon të dy sytë njëkohësisht (Rregulla #1) — kontrollo manualisht me furnitorin.'
+      };
+    }
+
+    const sharedTop2 = shared.slice(0, 2);
+    return {
+      odAlts: substituteBiofinity(sharedTop2, odCands),
+      osAlts: substituteBiofinity(sharedTop2, osCands),
+      warning: null
+    };
+  }
+
+  if (od.isToric !== os.isToric) {
+    const toricEye = od.isToric ? od : os;
+    const sphereEye = od.isToric ? os : od;
+    const toricCands = eligibleToricBrands(toricEye.rounded.S, toricEye.cylMag).slice(0, 2);
+    let missingPair = false;
+    const sphereAlts = toricCands.map(tb => {
+      const match = SPHERE_BRANDS.find(sb => sb.family === tb.family &&
+        sphereEye.rounded.S >= sb.sphereMin - 0.001 && sphereEye.rounded.S <= sb.sphereMax + 0.001);
+      if (!match) missingPair = true;
+      return match;
+    }).filter(Boolean);
+    const warning = missingPair
+      ? 'Për njërën nga markat toric të përzgjedhura s\'ka homolog sferik në stok (p.sh. Bausch + Lomb ULTRA apo Acuvue Oasys) — kontrollo me furnitorin për syrin sferik.'
+      : null;
+    return od.isToric
+      ? { odAlts: toricCands, osAlts: sphereAlts, warning: warning }
+      : { osAlts: toricCands, odAlts: sphereAlts, warning: warning };
+  }
+
+  return {
+    odAlts: eligibleSphereBrands(od.rounded.S).slice(0, 2),
+    osAlts: eligibleSphereBrands(os.rounded.S).slice(0, 2),
+    warning: null
+  };
+}
+
+function roundToCatalog(mag, catalog) {
+  let best = catalog[0], bestDiff = Math.abs(mag - catalog[0]);
+  for (const c of catalog) {
+    const diff = Math.abs(mag - c);
+    if (diff < bestDiff) { bestDiff = diff; best = c; }
+  }
+  return best;
+}
+
+function roundSphereStep(mag) {
+  if (mag <= 6.0) return Math.round(mag / 0.25) * 0.25;
+  let stepped = 6.0 + Math.round((mag - 6.0) / 0.5) * 0.5;
+  if (stepped > 20.0) stepped = 20.0;
+  return stepped;
+}
 function fmtD(x) {
   if (x === null || isNaN(x)) return '—';
   const sign = x >= 0 ? '+' : '';
@@ -328,19 +463,35 @@ function calcEye(sVal, cVal, aVal, vertexMM, cylConv) {
   const clSphereRaw = Fc1;
   const clCylRaw = Fc2 - Fc1;
 
-  const clSphere = round025(clSphereRaw);
-  const clCyl = round025(clCylRaw);
-  const clAxis = normAxis(round5(a));
+  // Sferë: rrumbullakos te hapi më i afërt real i katalogut (0.25D deri ±6.00D, pastaj 0.50D)
+  const sphereSign = clSphereRaw < 0 ? -1 : 1;
+  const clSphere = sphereSign * roundSphereStep(Math.abs(clSphereRaw));
+
+  // Cilindër: rrumbullakos te vlera më e afërt reale e disponueshme (0, -0.75, -1.25, ... -5.25)
+  let cylMagRounded = roundToCatalog(Math.abs(clCylRaw), CYL_CATALOG);
+  let clCyl = clCylRaw < 0 ? -cylMagRounded : cylMagRounded;
+  let clAxisBase = a;
+  if (clCyl > 0) {
+    // Lentet toric prodhohen vetëm në cilindër negativ — kthe në formën standarde
+    clCyl = -clCyl;
+    clAxisBase = a + 90;
+  }
 
   const seCL = clSphereRaw + clCylRaw / 2;
-
   const highPower = Math.abs(F1) >= 4 || Math.abs(F2) >= 4;
+  const cylOutOfCatalog = Math.abs(clCylRaw) > 6.0;
+  const isToric = cylMagRounded > 0;
 
+  // Aksi rrumbullakoset më vonë (pas përzgjedhjes së markës në pairBrandLogic), sepse hapi varet nga marka.
   return {
     error: false,
-    rounded: { S: clSphere, C: clCyl, A: clAxis },
+    rounded: { S: clSphere, C: clCyl, A: null },
+    axisBase: clAxisBase,
+    cylMag: cylMagRounded,
     se: seCL,
-    highPower: highPower
+    highPower: highPower,
+    cylOutOfCatalog: cylOutOfCatalog,
+    isToric: isToric
   };
 }
 
@@ -364,6 +515,34 @@ document.getElementById('calcBtn').addEventListener('click', function() {
   const body = document.getElementById('resultsBody');
   body.innerHTML = '';
 
+  let odFinal = od, osFinal = os, pairWarning = null;
+
+  if (!od.error && !os.error) {
+    const pair = pairBrandLogic(od, os);
+    pairWarning = pair.warning;
+
+    function finalizeAxis(res, alts) {
+      const axisStep = (alts && alts[0] && alts[0].axisStep) ? alts[0].axisStep : 5;
+      res.rounded.A = normAxis(roundToStep(res.axisBase, axisStep));
+      res.alts = alts || [];
+    }
+    finalizeAxis(od, pair.odAlts);
+    finalizeAxis(os, pair.osAlts);
+  } else {
+    [od, os].forEach(r => { if (!r.error) { r.rounded.A = normAxis(roundToStep(r.axisBase, 5)); r.alts = []; } });
+  }
+
+  function brandCell(res) {
+    if (!res.isToric) {
+      if (res.alts && res.alts.length) return res.alts.map(b => b.name).join('<br>');
+      return 'Sferike (pa cilindër) — kontrollo TopVue Air, Air Optix plus HydraGlyde, apo Carl Zeiss Contact Day 30 Compatic';
+    }
+    if (res.alts && res.alts.length) {
+      return res.alts.map(b => b.name).join('<br>');
+    }
+    return 'Jashtë stokut — kontakto furnitorin';
+  }
+
   function row(label, cls, res) {
     const tr = document.createElement('tr');
     tr.className = cls;
@@ -371,12 +550,14 @@ document.getElementById('calcBtn').addEventListener('click', function() {
       tr.innerHTML = '<td class="eye-label">' + label + '</td><td colspan="4">Fuqi shumë e lartë — kontrolloni vlerat</td>';
       return tr;
     }
+    const noMatch = res.isToric && (!res.alts || !res.alts.length);
+    const brandCls = noMatch ? ' style="color:#b45309;font-weight:600;"' : '';
     tr.innerHTML =
       '<td class="eye-label">' + label + '</td>' +
       '<td class="result-main">' + fmtD(res.rounded.S) + '</td>' +
       '<td class="result-main">' + (res.rounded.C === 0 ? '—' : fmtD(res.rounded.C)) + '</td>' +
       '<td>' + (res.rounded.C === 0 ? '—' : res.rounded.A + '°') + '</td>' +
-      '<td>' + fmtD(res.se) + '</td>';
+      '<td' + brandCls + '>' + brandCell(res) + '</td>';
     return tr;
   }
 
@@ -388,9 +569,11 @@ document.getElementById('calcBtn').addEventListener('click', function() {
   if ((!od.error && od.highPower) || (!os.error && os.highPower)) {
     warnings.push('Njëri sy ka fuqi ≥ 4.00D — korrigjimi i vertex-it është domethënës këtu; kontrolloni distancën e vertex-it të përdorur.');
   }
-  if ((!od.error && Math.abs(od.rounded.C) > 0 && Math.abs(od.rounded.C) < 0.75) ||
-      (!os.error && Math.abs(os.rounded.C) > 0 && Math.abs(os.rounded.C) < 0.75)) {
-    warnings.push('Cilindri nën 0.75D shpesh mund të thjeshtohet në lente sferike duke përdorur ekuivalentin sferik.');
+  if ((!od.error && od.cylOutOfCatalog) || (!os.error && os.cylOutOfCatalog)) {
+    warnings.push('Cilindri i llogaritur e kalon gamën e të gjitha markave në stok (deri -5.75D, Biofinity XR Toric) — konsultohu me furnitorin për lente me porosi speciale.');
+  }
+  if (pairWarning) {
+    warnings.push(pairWarning);
   }
   warnBox.innerHTML = warnings.length
     ? warnings.map(w => '<div class="warn">' + w + '</div>').join('')
@@ -408,9 +591,9 @@ document.getElementById('clearBtn').addEventListener('click', function() {
 });
 
 document.getElementById('printBtn').addEventListener('click', function() {
-  if (!document.getElementById('resultsCard').classList.contains('show')) {
-    document.getElementById('calcBtn').click();
-  }
+  // Rillogarit gjithmonë përpara printimit, që të mos printohen vlera të vjetra
+  // nëse fushat janë ndryshuar pas llogaritjes së fundit.
+  document.getElementById('calcBtn').click();
   window.print();
 });
 </script>
