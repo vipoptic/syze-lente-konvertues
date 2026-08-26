@@ -257,22 +257,31 @@
     line-height: 1.5;
   }
   @media print {
-    /* Printo titullin (letterhead) + kartelën e rezultateve — jo fushat e hyrjes, gjuhën, apo butonat.
-       (.formula-note NUK hiqet globalisht: klasa përdoret edhe nga shënimet brenda kartelës së
-       rezultateve — vertexNote nën settings-card mbetet i fshehur sepse gjithë .settings-card fshihet.) */
-    .settings-card, .eyes-card, .actions, .lang-toggle { display: none !important; }
+    /* Printo krejt faqen — titullin, cilësimet, fushat e hyrjes dhe rezultatet — ashtu siç shfaqet
+       në ekran; fshihet vetëm toggle-i i gjuhës, që s'ka kuptim në letër. */
+    .lang-toggle { display: none !important; }
     @page { size: A4; margin: 10mm; }
     html, body { background: white; }
     body { padding: 0; margin: 0; }
     .wrap { max-width: 100%; margin: 0; }
-    header { margin-bottom: 12px; }
-    .card.results {
-      box-shadow: none;
-      border: none;
-      padding: 0;
-      margin: 0;
-    }
-    .results-grid { grid-template-columns: 1fr 1fr; }
+    /* Gjithçka bëhet dukshëm më kompakte vertikalisht (padding/margin/madhësi shkrimi), që krejt
+       faqja — nga titulli deri te shënimi përfundimtar — të përshtatet zakonisht në 1 faqe A4,
+       edhe kur shfaqen paralajmërimet shtesë. */
+    header { margin-bottom: 6px; }
+    header h1 { font-size: 1.2rem; margin: 0 0 3px; }
+    header p { font-size: 0.8rem; }
+    .card { box-shadow: none; padding: 10px 16px; margin-bottom: 8px; }
+    .settings-row { margin-bottom: 0; gap: 10px; }
+    .eyes-grid, .results-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .eye-card, .result-card { padding: 8px 10px; }
+    .eye-card h2, .result-card h3 { margin: 0 0 6px; }
+    .eye-fields { gap: 6px; }
+    .result-stats { gap: 12px; margin-bottom: 8px; }
+    .result-brands { padding-top: 6px; }
+    .actions { margin: 6px 0; }
+    .actions button { padding: 6px 14px; }
+    .warn, .why-box, .disclaimer { padding: 6px 10px; margin-top: 6px; font-size: 0.8rem; }
+    .formula-note { margin-top: 4px; font-size: 0.72rem; }
     .result-card { page-break-inside: avoid; }
   }
 </style>
