@@ -256,10 +256,14 @@
     margin-top: 10px;
     line-height: 1.5;
   }
+  /* Shënimet teknike "Sphere: rounded to..." / "Priority order..." s'shfaqen më fare — as në ekran, as në print. */
+  .print-hide { display: none !important; }
   @media print {
     /* Printo krejt faqen — titullin, cilësimet, fushat e hyrjes dhe rezultatet — ashtu siç shfaqet
-       në ekran; fshihet vetëm toggle-i i gjuhës, që s'ka kuptim në letër. */
-    .lang-toggle { display: none !important; }
+       në ekran; fshihen vetëm toggle-i i gjuhës (s'ka kuptim në letër) dhe shënimet teknike
+       "Sphere: rounded to..." / "Priority order..." (formulaNote1/2 — shënuar me .print-hide),
+       që s'i duhen klientit në letrën e printuar. */
+    .lang-toggle, .print-hide { display: none !important; }
     @page { size: A4; margin: 10mm; }
     html, body { background: white; }
     body { padding: 0; margin: 0; }
@@ -380,13 +384,13 @@
       (F<sub>lens</sub> = F<sub>spectacle</sub> / (1 − d × F<sub>spectacle</sub>)). Since the result is theoretical, the exact
       contact lens prescription should be determined by a qualified optometrist or ophthalmologist during an eye examination.
     </div>
-    <p class="formula-note" data-i18n="formulaNote1">
+    <p class="formula-note print-hide" data-i18n="formulaNote1">
       Sphere: rounded to the nearest available step of 0.25D (up to ±6.00D) and 0.50D (beyond ±6.00D). Cylinder: rounded to the
       nearest real in-stock toric value (0, -0.75, -1.25, -1.75, -2.25, -2.75, -3.25, -3.75, -4.25, -4.75, -5.25, -5.75). Axis is
       rounded according to the recommended brand's step (10° for most, 5° for Biofinity XR Toric, and only specific angles
       10/20/70/80/90/100/160/170/180° for TopVue Daily for Astigmatism).
     </p>
-    <p class="formula-note" style="margin-top:8px;" data-i18n-html="formulaNote2Html">
+    <p class="formula-note print-hide" style="margin-top:8px;" data-i18n-html="formulaNote2Html">
       <strong>Priority order</strong> depends on the "Wear type" (First-time wearer / Extended wear / Budget) and "Replacement schedule"
       (Monthly / Daily) selected above, based on the shop's "Sygjerimet" spreadsheet. The tool always gives up to 2 alternatives, and
       applies the shop's rules: (a) if the cylinder forces one eye into a wider-range brand, the other eye gets the same brand; (b) if
