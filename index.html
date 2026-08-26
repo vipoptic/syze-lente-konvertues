@@ -257,12 +257,15 @@
     line-height: 1.5;
   }
   @media print {
-    /* Printo vetëm kartelën e rezultateve — jo header-in, fushat e hyrjes, apo butonat. */
-    header, .settings-card, .eyes-card, .actions, .lang-toggle, .formula-note { display: none !important; }
+    /* Printo titullin (letterhead) + kartelën e rezultateve — jo fushat e hyrjes, gjuhën, apo butonat.
+       (.formula-note NUK hiqet globalisht: klasa përdoret edhe nga shënimet brenda kartelës së
+       rezultateve — vertexNote nën settings-card mbetet i fshehur sepse gjithë .settings-card fshihet.) */
+    .settings-card, .eyes-card, .actions, .lang-toggle { display: none !important; }
     @page { size: A4; margin: 10mm; }
     html, body { background: white; }
     body { padding: 0; margin: 0; }
     .wrap { max-width: 100%; margin: 0; }
+    header { margin-bottom: 12px; }
     .card.results {
       box-shadow: none;
       border: none;
@@ -850,6 +853,16 @@ function calcEye(sVal, cVal, aVal, vertexMM, cylConv) {
     isToric: isToric
   };
 }
+
+// Shtypja e "Enter" në cilëndo fushë hyrjeje (Sferë/Cilindër/Aks, OD ose OS) njëlloj si klikimi i "Llogarit".
+['odS', 'odC', 'odA', 'osS', 'osC', 'osA'].forEach(id => {
+  document.getElementById(id).addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      document.getElementById('calcBtn').click();
+    }
+  });
+});
 
 document.getElementById('calcBtn').addEventListener('click', function() {
   const vertex = VERTEX_MM_DEFAULT;
