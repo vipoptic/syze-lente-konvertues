@@ -129,23 +129,68 @@
   #printBtn:hover { background: #000; }
   .results { display: none; }
   .results.show { display: block; }
-  table {
-    width: 100%;
-    border-collapse: collapse;
+  .results-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
     margin-top: 8px;
   }
-  th, td {
-    text-align: center;
-    padding: 10px 8px;
-    border-bottom: 1px solid var(--border);
+  @media (max-width: 620px) {
+    .results-grid { grid-template-columns: 1fr; }
+  }
+  .result-card {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .result-card.od { border-top: 4px solid var(--od); }
+  .result-card.os { border-top: 4px solid var(--os); }
+  .result-card h3 {
+    margin: 0 0 12px;
+    font-size: 1rem;
+  }
+  .result-card.od h3 { color: var(--od); }
+  .result-card.os h3 { color: var(--os); }
+  .result-stats {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+  }
+  .result-stat .stat-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-bottom: 2px;
+  }
+  .result-stat .stat-value {
+    font-size: 1.15rem;
+    font-weight: 700;
+  }
+  .result-error {
+    color: var(--muted);
     font-size: 0.95rem;
   }
-  th { color: var(--muted); font-weight: 600; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.02em; }
-  td.eye-label { text-align: left; font-weight: 700; }
-  tr.od td.eye-label { color: var(--od); }
-  tr.os td.eye-label { color: var(--os); }
-  .result-main { font-weight: 700; font-size: 1.05rem; }
-  .result-sub { color: var(--muted); font-size: 0.8rem; }
+  .result-brands {
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+  .result-brands .stat-label {
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    margin-bottom: 6px;
+  }
+  .result-brands .brand-line {
+    font-size: 0.95rem;
+    line-height: 1.6;
+  }
+  .result-brands .brand-line.brand-warn {
+    color: #b45309;
+    font-weight: 600;
+  }
   .warn {
     background: var(--warn-bg);
     border: 1px solid var(--warn-border);
@@ -174,6 +219,7 @@
     .actions, .settings-row, .eyes-grid, .formula-note { display: none !important; }
     body { background: white; padding: 0; }
     .card { box-shadow: none; border: 1px solid #ccc; }
+    .results-grid { grid-template-columns: 1fr 1fr; }
   }
 </style>
 </head>
@@ -187,8 +233,19 @@
   <div class="card">
     <div class="settings-row">
       <div class="field">
-        <label for="vertex">Distanca e Vertex-it (mm)</label>
-        <input type="number" id="vertex" value="12" step="0.5" min="0" max="20">
+        <label for="wearType">Lloji i përdorimit</label>
+        <select id="wearType">
+          <option value="new" selected>New Wear</option>
+          <option value="extended">Extended wear</option>
+          <option value="low">Low budget</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="duration">Kohëzgjatja</label>
+        <select id="duration">
+          <option value="monthly" selected>Mujore</option>
+          <option value="daily">Ditore</option>
+        </select>
       </div>
       <div class="field">
         <label for="cylConv">Konventa e cilindrit</label>
@@ -198,7 +255,7 @@
         </select>
       </div>
     </div>
-    <p class="formula-note">Distanca standarde e vertex-it për syze është ~12mm. Nëse e njihni distancën e saktë të matur, përdorni atë për rezultat më të saktë.</p>
+    <p class="formula-note">Llogaritjet përdorin distancën standarde të vertex-it prej 12mm (vlerë tipike për syze).</p>
   </div>
 
   <div class="card">
@@ -248,30 +305,20 @@
 
   <div class="card results" id="resultsCard">
     <h2 style="margin-top:0; font-size:1.05rem;">Rezultati — Fuqia e Lenteve të Kontaktit</h2>
-    <table>
-      <thead>
-        <tr>
-          <th style="text-align:left;">Syri</th>
-          <th>Sferë (D)</th>
-          <th>Cilindër (D)</th>
-          <th>Aks (°)</th>
-          <th>Lente e rekomanduar</th>
-        </tr>
-      </thead>
-      <tbody id="resultsBody"></tbody>
-    </table>
+    <div class="results-grid" id="resultsBody"></div>
     <div id="warnBox"></div>
     <p class="formula-note">
       Sferë: rrumbullakosur në hapa prej 0.25D (deri ±6.00D) dhe 0.50D (mbi ±6.00D). Cilindër: rrumbullakosur te vlera reale e disponueshme
       e lenteve toric në stok (0, -0.75, -1.25, -1.75, -2.25, -2.75, -3.25, -3.75, -4.25, -4.75, -5.25, -5.75). Aksi rrumbullakoset sipas
-      hapit të markës së rekomanduar (10° për shumicën, 5° për Biofinity XR Toric).
+      hapit të markës së rekomanduar (10° për shumicën, 5° për Biofinity XR Toric, dhe vetëm kënde specifike
+      10/20/70/80/90/100/160/170/180° për TopVue Daily for Astigmatism).
     </p>
     <p class="formula-note" style="margin-top:8px;">
-      <strong>Radha e prioritetit</strong> (bazuar në "Sygjerimet"): 1) TopVue Prime, 2) Air Optix plus HydraGlyde, 3) TopVue Air,
-      4) Bausch + Lomb ULTRA, 5) Acuvue Oasys, dhe Biofinity XR Toric si rasti i fundit (gamë më e gjerë). Mjeti jep gjithmonë deri 2 alternativa,
-      dhe zbaton rregullat e dyqanit: (a) nëse cilindri e detyron njërin sy te një markë më e gjerë, syri tjetër merr të njëjtën markë;
-      (b) nëse njëri sy është toric dhe tjetri sferik, marka sferike sugjerohet nga e njëjta familje si marka toric e zgjedhur;
-      (c) nëse njëri sy përshtatet vetëm me Biofinity XR Toric, syri tjetër merr Biofinity Toric nëse i mjafton gama e tij.
+      <strong>Radha e prioritetit</strong> varet nga "Lloji i përdorimit" (New Wear / Extended wear / Low budget) dhe "Kohëzgjatja"
+      (Mujore / Ditore) e zgjedhura më sipër, sipas sheet-it "Sygjerimet". Mjeti jep gjithmonë deri 2 alternativa, dhe zbaton rregullat
+      e dyqanit: (a) nëse cilindri e detyron njërin sy te një markë më e gjerë, syri tjetër merr të njëjtën markë; (b) nëse njëri sy
+      është toric dhe tjetri sferik, marka sferike sugjerohet nga e njëjta familje si marka toric e zgjedhur; (c) për lente mujore,
+      nëse njëri sy përshtatet vetëm me Biofinity XR Toric, syri tjetër merr Biofinity Toric nëse i mjafton gama e tij.
     </p>
   </div>
 
@@ -291,63 +338,158 @@ function round5(x) { return Math.round(x / 5) * 5; }
 // Cilindër: vetëm -0.75 / -1.25 / -1.75 / -2.25 / -2.75 / -3.25 / -3.75 / -4.25 / -4.75 / -5.25 / -5.75 (hapa 0.50D, minimumi 0.75D, max -5.75 nga Biofinity XR Toric)
 const CYL_CATALOG = [0, 0.75, 1.25, 1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75, 5.25, 5.75];
 
+// Distanca e vertex-it: fikse në 12mm (vlerë standarde tipike për syze) — s'është më e ndryshueshme nga UI.
+const VERTEX_MM_DEFAULT = 12;
+
 // Marka të dyqanit, sipas "Sygjerimet" — radha e prioritetit (numri më i vogël = preferohet më parë).
 // "family" lidh markën toric me homologun e saj sferik (për Rregullën #2).
+// "priority" mund të jetë numër fiks (vlen për çdo "Lloj përdorimi") ose objekt {new, extended, low} —
+// kur një modalitet ka vlerë null/pa specifikuar në sheet, marka NUK sugjerohet për atë modalitet.
 const TORIC_BRANDS = [
-  { name: 'TopVue Prime for Astigmatism', family: 'TopVue Prime', sphereMin: -10.00, sphereMax: 8.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: 1 },
-  { name: 'Air Optix plus HydraGlyde for Astigmatism', family: 'Air Optix plus HydraGlyde', sphereMin: -10.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: 2 },
-  { name: 'TopVue Air for Astigmatism', family: 'TopVue Air', sphereMin: -12.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: 3 },
-  { name: 'Bausch + Lomb ULTRA for Astigmatism', family: 'Bausch + Lomb ULTRA', sphereMin: -9.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.75, axisStep: 10, priority: 4 },
-  { name: 'Acuvue Oasys for Astigmatism', family: 'Acuvue Oasys', sphereMin: -9.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.75, axisStep: 10, priority: 5 },
+  { name: 'TopVue Prime for Astigmatism', family: 'TopVue Prime', sphereMin: -10.00, sphereMax: 8.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: { new: 1, extended: 1, low: null } },
+  { name: 'Air Optix plus HydraGlyde for Astigmatism', family: 'Air Optix plus HydraGlyde', sphereMin: -10.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: { new: 2, extended: 2, low: null } },
+  { name: 'TopVue Air for Astigmatism', family: 'TopVue Air', sphereMin: -12.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: { new: 3, extended: 3, low: 1 } },
+  { name: 'Bausch + Lomb ULTRA for Astigmatism', family: 'Bausch + Lomb ULTRA', sphereMin: -9.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.75, axisStep: 10, priority: { new: 4, extended: 4, low: 2 } },
+  { name: 'Acuvue Oasys for Astigmatism', family: 'Acuvue Oasys', sphereMin: -9.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.75, axisStep: 10, priority: { new: 5, extended: 5, low: null } },
+  // Biofinity Toric / XR Toric s'kanë prioritet të veçantë sipas modalitetit në sheet — funksionojnë si
+  // "rasti i fundit" (gamë e gjerë) në çdo modalitet.
   { name: 'Biofinity Toric', family: 'Biofinity', sphereMin: -10.00, sphereMax: 8.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: 50 },
   { name: 'Biofinity XR Toric', family: 'Biofinity', sphereMin: -20.00, sphereMax: 20.00, cylMin: 0.75, cylMax: 5.75, axisStep: 5, priority: 99 }
 ];
 
 const SPHERE_BRANDS = [
-  { name: 'TopVue Prime', family: 'TopVue Prime', sphereMin: -12.00, sphereMax: 8.00, priority: 1 },
-  { name: 'Air Optix plus HydraGlyde', family: 'Air Optix plus HydraGlyde', sphereMin: -12.00, sphereMax: 8.00, priority: 2 },
-  { name: 'TopVue Air', family: 'TopVue Air', sphereMin: -12.00, sphereMax: 8.00, priority: 3 },
-  { name: 'Biofinity', family: 'Biofinity', sphereMin: -12.00, sphereMax: 8.00, priority: 4 }
-  // "Bausch + Lomb ULTRA" dhe "Acuvue Oasys" s'kanë homolog sferik në stok, dhe "Carl Zeiss Contact Day 30 Compatic (6 lenses)" s'ka gamë të specifikuar ende.
+  { name: 'TopVue Prime', family: 'TopVue Prime', sphereMin: -12.00, sphereMax: 8.00, priority: { new: 1, extended: 1, low: null } },
+  { name: 'Air Optix plus HydraGlyde', family: 'Air Optix plus HydraGlyde', sphereMin: -12.00, sphereMax: 8.00, priority: { new: 2, extended: 2, low: null } },
+  { name: 'TopVue Air', family: 'TopVue Air', sphereMin: -12.00, sphereMax: 8.00, priority: { new: 3, extended: 3, low: 1 } },
+  { name: 'Bausch + Lomb ULTRA', family: 'Bausch + Lomb ULTRA', sphereMin: -12.00, sphereMax: 6.00, priority: { new: null, extended: null, low: 2 } },
+  // Biofinity s'ka prioritet specifik në sheet — "rasti i fundit" për çdo modalitet.
+  { name: 'Biofinity', family: 'Biofinity', sphereMin: -12.00, sphereMax: 8.00, priority: 100 }
+  // "Acuvue Oasys" s'ka homolog sferik në stok, dhe "Carl Zeiss Contact Day 30 Compatic (6 lenses)" s'ka gamë të specifikuar ende.
+];
+
+// Lente ditore (Kohëzgjatja = "Ditore"), sipas "Sygjerimet". Gamat "Sfera nga" për lente ditore ishin
+// shënuar në sheet pa shenjën minus (p.sh. "12.00" në vend të "-12.00") — trajtohen këtu si negative,
+// në përputhje me gamat identike të lenteve mujore.
+// "TopVue Daily for Astigmatism" s'ka hap fiks aksi — prodhohet vetëm në kënde specifike (jo çdo 10°),
+// prandaj përdor "axisCatalog" (listë këndesh të lejuara) në vend të "axisStep".
+const TOPVUE_DAILY_AXIS_CATALOG = [10, 20, 70, 80, 90, 100, 160, 170, 180];
+
+const DAILY_TORIC_BRANDS = [
+  { name: 'TopVue Daily for Astigmatism', family: 'TopVue Daily', sphereMin: -9.00, sphereMax: 0.00, cylMin: 0.75, cylMax: 2.25, axisCatalog: TOPVUE_DAILY_AXIS_CATALOG, priority: { new: 1, extended: 3, low: 1 } },
+  { name: 'Precision1 for Astigmatism', family: 'Precision1', sphereMin: -8.00, sphereMax: 4.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: { new: 2, extended: 2, low: 2 } },
+  { name: 'Biotrue ONEday for Astigmatism', family: 'Biotrue ONEday', sphereMin: -9.00, sphereMax: 4.00, cylMin: 0.75, cylMax: 2.75, axisStep: 10, priority: { new: null, extended: 1, low: 3 } }
+];
+
+const DAILY_SPHERE_BRANDS = [
+  { name: 'Precision1', family: 'Precision1', sphereMin: -12.00, sphereMax: 8.00, priority: { new: 1, extended: null, low: null } },
+  { name: 'Biotrue ONEday', family: 'Biotrue ONEday', sphereMin: -12.00, sphereMax: 6.00, priority: { new: 2, extended: null, low: null } },
+  { name: 'TopVue Daily', family: 'TopVue Daily', sphereMin: -12.00, sphereMax: 4.00, priority: { new: 3, extended: null, low: null } }
+  // Për rast thjesht sferik (pa cilindër) me "Ditore", vetëm modaliteti "New Wear" ka radhë prioriteti
+  // të specifikuar në sheet — "Extended wear" dhe "Low budget" ende s'kanë.
 ];
 
 function roundToStep(value, step) { return Math.round(value / step) * step; }
 
-function eligibleToricBrands(sphereRounded, cylMagRounded) {
-  if (cylMagRounded === 0) return [];
-  return TORIC_BRANDS.filter(b =>
-    cylMagRounded >= b.cylMin - 0.001 && cylMagRounded <= b.cylMax + 0.001 &&
-    sphereRounded >= b.sphereMin - 0.001 && sphereRounded <= b.sphereMax + 0.001
-  ).sort((a, b) => a.priority - b.priority);
+// Distanca "rrethore" mes dy këndeve në shkallën 0–180° (aksi 180° dhe 0° përfaqësojnë të njëjtin meridian).
+function axisCircDist(a, b) {
+  const diff = Math.abs(a - b) % 180;
+  return Math.min(diff, 180 - diff);
 }
 
-function eligibleSphereBrands(sphereRounded) {
-  return SPHERE_BRANDS.filter(b =>
-    sphereRounded >= b.sphereMin - 0.001 && sphereRounded <= b.sphereMax + 0.001
-  ).sort((a, b) => a.priority - b.priority);
+// Rrumbullakos këndin te vlera më e afërt nga një listë këndesh specifike (p.sh. markat me gamë të
+// kufizuar aksesh, si "TopVue Daily for Astigmatism"), duke marrë parasysh mbështjelljen rrethore.
+function roundToAngleCatalog(angle, catalog) {
+  let best = catalog[0], bestDiff = axisCircDist(angle, catalog[0]);
+  for (const c of catalog) {
+    const diff = axisCircDist(angle, c);
+    if (diff < bestDiff) { bestDiff = diff; best = c; }
+  }
+  return best;
+}
+
+// Kthen prioritetin numerik të markës për modalitetin e zgjedhur ('new' | 'extended' | 'low'),
+// ose null nëse marka s'sugjerohet fare për atë modalitet.
+function brandPriority(b, wearType) {
+  if (b.priority && typeof b.priority === 'object') {
+    const p = b.priority[wearType];
+    return (p === undefined || p === null) ? null : p;
+  }
+  return b.priority;
+}
+
+function toricCatalog(duration) { return duration === 'daily' ? DAILY_TORIC_BRANDS : TORIC_BRANDS; }
+function sphereCatalog(duration) { return duration === 'daily' ? DAILY_SPHERE_BRANDS : SPHERE_BRANDS; }
+
+// Për marka me gamë të kufizuar aksesh (p.sh. "TopVue Daily for Astigmatism" — vetëm disa kënde specifike
+// të prodhuara): sipas rregullit të dyqanit, nëse aksi i rrumbullakosur në hapin standard prej 10° s'bie
+// saktësisht mbi një nga këndet e disponueshme të asaj marke, marka NUK sugjerohet fare — kalo te opsioni tjetër.
+function axisEligible(brand, axisBase) {
+  if (!brand.axisCatalog) return true;
+  const rounded10 = normAxis(roundToStep(axisBase, 10));
+  return brand.axisCatalog.indexOf(rounded10) !== -1;
+}
+
+function eligibleToricBrands(sphereRounded, cylMagRounded, wearType, duration, axisBase) {
+  if (cylMagRounded === 0) return [];
+  return toricCatalog(duration)
+    .map(b => ({ b: b, p: brandPriority(b, wearType) }))
+    .filter(x => x.p !== null &&
+      cylMagRounded >= x.b.cylMin - 0.001 && cylMagRounded <= x.b.cylMax + 0.001 &&
+      sphereRounded >= x.b.sphereMin - 0.001 && sphereRounded <= x.b.sphereMax + 0.001 &&
+      axisEligible(x.b, axisBase)
+    )
+    .sort((a, b) => a.p - b.p)
+    .map(x => x.b);
+}
+
+function eligibleSphereBrands(sphereRounded, wearType, duration) {
+  return sphereCatalog(duration)
+    .map(b => ({ b: b, p: brandPriority(b, wearType) }))
+    .filter(x => x.p !== null &&
+      sphereRounded >= x.b.sphereMin - 0.001 && sphereRounded <= x.b.sphereMax + 0.001
+    )
+    .sort((a, b) => a.p - b.p)
+    .map(x => x.b);
 }
 
 // Rregullat e dyqanit (nga "Sygjerimet"):
 // 1) Nëse cilindri i madh e detyron njërin sy te një markë më e gjerë, syri tjetër merr TË NJËJTËN markë.
 // 2) Nëse njëri sy është toric dhe tjetri sferik, marka sferike duhet të jetë e së njëjtës familje si marka toric e zgjedhur.
 // 3) Jepen gjithmonë 2 alternativa (kur ka mundësi).
-function pairBrandLogic(od, os) {
+function pairBrandLogic(od, os, wearType, duration) {
   if (od.error || os.error) return { odAlts: [], osAlts: [], warning: null };
+  const toricList = toricCatalog(duration);
+  const sphereList = sphereCatalog(duration);
 
   if (od.isToric && os.isToric) {
-    const odCands = eligibleToricBrands(od.rounded.S, od.cylMag);
-    const osCands = eligibleToricBrands(os.rounded.S, os.cylMag);
+    const odCands = eligibleToricBrands(od.rounded.S, od.cylMag, wearType, duration, od.axisBase);
+    const osCands = eligibleToricBrands(os.rounded.S, os.cylMag, wearType, duration, os.axisBase);
 
-    // Rregulla #4: nëse "Biofinity XR Toric" del si alternativë (1-a ose 2-ta) për një sy, por syri
-    // vetë (pavarësisht nga syri tjetër) përshtatet edhe me "Biofinity Toric" (gama e rregullt),
-    // zëvendëso XR me Biofinity Toric për atë sy specifik — mos e detyro në XR pa nevojë.
-    function substituteBiofinity(list, ownCands) {
-      return list.map(b => {
-        if (b.name === 'Biofinity XR Toric' && ownCands.some(c => c.name === 'Biofinity Toric')) {
-          return TORIC_BRANDS.find(x => x.name === 'Biofinity Toric');
+    // Rregulla #4 (vetëm mujore — s'ka homolog "XR" te lentet ditore): nëse "Biofinity XR Toric" del si
+    // alternativë (1-a ose 2-ta) për një sy, por syri vetë (pavarësisht nga syri tjetër) përshtatet edhe
+    // me "Biofinity Toric" (gama e rregullt), zëvendëso XR me Biofinity Toric për atë sy specifik.
+    // Nëse zëvendësimi krijon një duplikatë (marka tashmë ishte në listë), hiqe duplikatin dhe
+    // plotëso vendin e liruar me kandidatin tjetër më të lartë në radhë, nëse ka.
+    function substituteBiofinity(list, ownCands, fallbackPool) {
+      const replaced = list.map(b => {
+        if (duration !== 'daily' && b.name === 'Biofinity XR Toric' && ownCands.some(c => c.name === 'Biofinity Toric')) {
+          return toricList.find(x => x.name === 'Biofinity Toric');
         }
         return b;
       });
+      const seen = new Set();
+      const deduped = replaced.filter(b => {
+        if (seen.has(b.name)) return false;
+        seen.add(b.name);
+        return true;
+      });
+      if (deduped.length < 2 && fallbackPool) {
+        for (const cand of fallbackPool) {
+          if (deduped.length >= 2) break;
+          if (!seen.has(cand.name)) { deduped.push(cand); seen.add(cand.name); }
+        }
+      }
+      return deduped;
     }
 
     const osNames = new Set(osCands.map(b => b.name));
@@ -357,16 +499,16 @@ function pairBrandLogic(od, os) {
       const odList = odCands.slice(0, 2);
       const osList = osCands.slice(0, 2);
       return {
-        odAlts: substituteBiofinity(odList, odCands),
-        osAlts: substituteBiofinity(osList, osCands),
+        odAlts: substituteBiofinity(odList, odCands, odCands),
+        osAlts: substituteBiofinity(osList, osCands, osCands),
         warning: 'S\'ka një markë të vetme që mbulon të dy sytë njëkohësisht (Rregulla #1) — kontrollo manualisht me furnitorin.'
       };
     }
 
     const sharedTop2 = shared.slice(0, 2);
     return {
-      odAlts: substituteBiofinity(sharedTop2, odCands),
-      osAlts: substituteBiofinity(sharedTop2, osCands),
+      odAlts: substituteBiofinity(sharedTop2, odCands, shared),
+      osAlts: substituteBiofinity(sharedTop2, osCands, shared),
       warning: null
     };
   }
@@ -374,16 +516,23 @@ function pairBrandLogic(od, os) {
   if (od.isToric !== os.isToric) {
     const toricEye = od.isToric ? od : os;
     const sphereEye = od.isToric ? os : od;
-    const toricCands = eligibleToricBrands(toricEye.rounded.S, toricEye.cylMag).slice(0, 2);
+    const toricCands = eligibleToricBrands(toricEye.rounded.S, toricEye.cylMag, wearType, duration, toricEye.axisBase).slice(0, 2);
     let missingPair = false;
+    const seenSphere = new Set();
     const sphereAlts = toricCands.map(tb => {
-      const match = SPHERE_BRANDS.find(sb => sb.family === tb.family &&
+      const match = sphereList.find(sb => sb.family === tb.family &&
         sphereEye.rounded.S >= sb.sphereMin - 0.001 && sphereEye.rounded.S <= sb.sphereMax + 0.001);
       if (!match) missingPair = true;
       return match;
-    }).filter(Boolean);
+    }).filter(Boolean).filter(b => {
+      // Dy marka toric të familjeve njësoj (p.sh. Biofinity Toric/XR Toric) kanë të njëjtin homolog
+      // sferik — mos e përsërit të njëjtën markë sferike dy herë si "2 alternativa".
+      if (seenSphere.has(b.name)) return false;
+      seenSphere.add(b.name);
+      return true;
+    });
     const warning = missingPair
-      ? 'Për njërën nga markat toric të përzgjedhura s\'ka homolog sferik në stok (p.sh. Bausch + Lomb ULTRA apo Acuvue Oasys) — kontrollo me furnitorin për syrin sferik.'
+      ? 'Për njërën nga markat toric të përzgjedhura s\'ka homolog sferik në stok — kontrollo me furnitorin për syrin sferik.'
       : null;
     return od.isToric
       ? { odAlts: toricCands, osAlts: sphereAlts, warning: warning }
@@ -391,8 +540,8 @@ function pairBrandLogic(od, os) {
   }
 
   return {
-    odAlts: eligibleSphereBrands(od.rounded.S).slice(0, 2),
-    osAlts: eligibleSphereBrands(os.rounded.S).slice(0, 2),
+    odAlts: eligibleSphereBrands(od.rounded.S, wearType, duration).slice(0, 2),
+    osAlts: eligibleSphereBrands(os.rounded.S, wearType, duration).slice(0, 2),
     warning: null
   };
 }
@@ -496,8 +645,10 @@ function calcEye(sVal, cVal, aVal, vertexMM, cylConv) {
 }
 
 document.getElementById('calcBtn').addEventListener('click', function() {
-  const vertex = document.getElementById('vertex').value;
+  const vertex = VERTEX_MM_DEFAULT;
   const cylConv = document.getElementById('cylConv').value;
+  const wearType = document.getElementById('wearType').value;
+  const duration = document.getElementById('duration').value;
 
   const od = calcEye(
     document.getElementById('odS').value,
@@ -517,52 +668,65 @@ document.getElementById('calcBtn').addEventListener('click', function() {
 
   let odFinal = od, osFinal = os, pairWarning = null;
 
-  if (!od.error && !os.error) {
-    const pair = pairBrandLogic(od, os);
-    pairWarning = pair.warning;
-
-    function finalizeAxis(res, alts) {
-      const axisStep = (alts && alts[0] && alts[0].axisStep) ? alts[0].axisStep : 5;
+  function finalizeAxis(res, alts) {
+    const chosen = alts && alts[0];
+    if (chosen && chosen.axisCatalog) {
+      res.rounded.A = roundToAngleCatalog(normAxis(res.axisBase), chosen.axisCatalog);
+    } else {
+      const axisStep = (chosen && chosen.axisStep) ? chosen.axisStep : 5;
       res.rounded.A = normAxis(roundToStep(res.axisBase, axisStep));
-      res.alts = alts || [];
     }
+    res.alts = alts || [];
+  }
+
+  if (!od.error && !os.error) {
+    const pair = pairBrandLogic(od, os, wearType, duration);
+    pairWarning = pair.warning;
     finalizeAxis(od, pair.odAlts);
     finalizeAxis(os, pair.osAlts);
   } else {
     [od, os].forEach(r => { if (!r.error) { r.rounded.A = normAxis(roundToStep(r.axisBase, 5)); r.alts = []; } });
   }
 
-  function brandCell(res) {
+  function brandLines(res) {
     if (!res.isToric) {
-      if (res.alts && res.alts.length) return res.alts.map(b => b.name).join('<br>');
-      return 'Sferike (pa cilindër) — kontrollo TopVue Air, Air Optix plus HydraGlyde, apo Carl Zeiss Contact Day 30 Compatic';
+      if (res.alts && res.alts.length) return { lines: res.alts.map(b => b.name), warn: false };
+      const hint = duration === 'daily'
+        ? 'Sferike (pa cilindër) — kontrollo Precision1, Biotrue ONEday, apo TopVue Daily'
+        : 'Sferike (pa cilindër) — kontrollo TopVue Air, Air Optix plus HydraGlyde, apo Carl Zeiss Contact Day 30 Compatic';
+      return { lines: [hint], warn: false };
     }
     if (res.alts && res.alts.length) {
-      return res.alts.map(b => b.name).join('<br>');
+      return { lines: res.alts.map(b => b.name), warn: false };
     }
-    return 'Jashtë stokut — kontakto furnitorin';
+    return { lines: ['Jashtë stokut — kontakto furnitorin'], warn: true };
   }
 
-  function row(label, cls, res) {
-    const tr = document.createElement('tr');
-    tr.className = cls;
+  function card(label, cls, res) {
+    const div = document.createElement('div');
+    div.className = 'result-card ' + cls;
     if (res.error) {
-      tr.innerHTML = '<td class="eye-label">' + label + '</td><td colspan="4">Fuqi shumë e lartë — kontrolloni vlerat</td>';
-      return tr;
+      div.innerHTML = '<h3>' + label + '</h3><div class="result-error">Fuqi shumë e lartë — kontrolloni vlerat</div>';
+      return div;
     }
-    const noMatch = res.isToric && (!res.alts || !res.alts.length);
-    const brandCls = noMatch ? ' style="color:#b45309;font-weight:600;"' : '';
-    tr.innerHTML =
-      '<td class="eye-label">' + label + '</td>' +
-      '<td class="result-main">' + fmtD(res.rounded.S) + '</td>' +
-      '<td class="result-main">' + (res.rounded.C === 0 ? '—' : fmtD(res.rounded.C)) + '</td>' +
-      '<td>' + (res.rounded.C === 0 ? '—' : res.rounded.A + '°') + '</td>' +
-      '<td' + brandCls + '>' + brandCell(res) + '</td>';
-    return tr;
+    const brand = brandLines(res);
+    const brandClass = brand.warn ? ' brand-warn' : '';
+    div.innerHTML =
+      '<h3>' + label + '</h3>' +
+      '<div class="result-stats">' +
+        '<div class="result-stat"><div class="stat-label">Sferë</div><div class="stat-value">' + fmtD(res.rounded.S) + '</div></div>' +
+        '<div class="result-stat"><div class="stat-label">Cilindër</div><div class="stat-value">' + (res.rounded.C === 0 ? '—' : fmtD(res.rounded.C)) + '</div></div>' +
+        '<div class="result-stat"><div class="stat-label">Aks</div><div class="stat-value">' + (res.rounded.C === 0 ? '—' : res.rounded.A + '°') + '</div></div>' +
+      '</div>' +
+      '<div class="result-brands">' +
+        '<div class="stat-label">Lente e rekomanduar</div>' +
+        brand.lines.map(l => '<div class="brand-line' + brandClass + '">' + l + '</div>').join('') +
+      '</div>';
+    return div;
   }
 
-  body.appendChild(row('OD (djathtas)', 'od', od));
-  body.appendChild(row('OS (majtas)', 'os', os));
+  body.appendChild(card('OD (djathtas)', 'od', od));
+  body.appendChild(card('OS (majtas)', 'os', os));
 
   const warnBox = document.getElementById('warnBox');
   let warnings = [];
@@ -585,8 +749,9 @@ document.getElementById('calcBtn').addEventListener('click', function() {
 
 document.getElementById('clearBtn').addEventListener('click', function() {
   ['odS','odC','odA','osS','osC','osA'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('vertex').value = 12;
   document.getElementById('cylConv').value = 'minus';
+  document.getElementById('wearType').value = 'new';
+  document.getElementById('duration').value = 'monthly';
   document.getElementById('resultsCard').classList.remove('show');
 });
 
