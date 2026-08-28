@@ -99,6 +99,12 @@
     font-size: 0.95rem;
     min-width: 90px;
   }
+  .field input:disabled {
+    background: var(--border);
+    color: var(--muted);
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
   .field input:focus, .field select:focus {
     outline: 2px solid var(--primary);
     outline-offset: 1px;
@@ -336,7 +342,7 @@
         <div class="eye-fields">
           <div class="field">
             <label for="odS" data-i18n="sphereFieldLabel">Sphere (D)</label>
-            <input type="number" id="odS" step="0.25" placeholder="0.00">
+            <input type="number" id="odS" step="0.25" min="-20" max="20" placeholder="0.00">
           </div>
           <div class="field">
             <label for="odC" data-i18n="cylFieldLabel">Cylinder (D)</label>
@@ -344,7 +350,7 @@
           </div>
           <div class="field">
             <label for="odA" data-i18n="axisFieldLabel">Axis (°)</label>
-            <input type="number" id="odA" step="1" min="0" max="180" placeholder="0">
+            <input type="number" id="odA" step="1" min="1" max="180" placeholder="0">
           </div>
         </div>
       </div>
@@ -353,7 +359,7 @@
         <div class="eye-fields">
           <div class="field">
             <label for="osS" data-i18n="sphereFieldLabel">Sphere (D)</label>
-            <input type="number" id="osS" step="0.25" placeholder="0.00">
+            <input type="number" id="osS" step="0.25" min="-20" max="20" placeholder="0.00">
           </div>
           <div class="field">
             <label for="osC" data-i18n="cylFieldLabel">Cylinder (D)</label>
@@ -361,7 +367,7 @@
           </div>
           <div class="field">
             <label for="osA" data-i18n="axisFieldLabel">Axis (°)</label>
-            <input type="number" id="osA" step="1" min="0" max="180" placeholder="0">
+            <input type="number" id="osA" step="1" min="1" max="180" placeholder="0">
           </div>
         </div>
       </div>
@@ -548,25 +554,38 @@ function setLang(lang) {
 // "priority" mund të jetë numër fiks (vlen për çdo "Lloj përdorimi") ose objekt {new, extended, low} —
 // kur një modalitet ka vlerë null/pa specifikuar në sheet, marka NUK sugjerohet për atë modalitet.
 const TORIC_BRANDS = [
-  { name: 'TopVue Prime for Astigmatism', family: 'TopVue Prime', sphereMin: -10.00, sphereMax: 8.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: { new: 1, extended: 1, low: null } },
+  { name: 'TopVue Prime for Astigmatism', family: 'TopVue Prime', sphereMin: -10.00, sphereMax: 8.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: { new: 1, extended: 1, low: 2 } },
   { name: 'Air Optix plus HydraGlyde for Astigmatism', family: 'Air Optix plus HydraGlyde', sphereMin: -10.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: { new: 2, extended: 2, low: null } },
   { name: 'TopVue Air for Astigmatism', family: 'TopVue Air', sphereMin: -12.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: { new: 3, extended: 3, low: 1 } },
-  { name: 'Bausch + Lomb ULTRA for Astigmatism', family: 'Bausch + Lomb ULTRA', sphereMin: -9.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.75, axisStep: 10, priority: { new: 4, extended: 4, low: 2 } },
-  { name: 'Acuvue Oasys for Astigmatism', family: 'Acuvue Oasys', sphereMin: -9.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.75, axisStep: 10, priority: { new: 5, extended: 5, low: null } },
-  // Biofinity Toric / XR Toric s'kanë prioritet të veçantë sipas modalitetit në sheet — funksionojnë si
-  // "rasti i fundit" (gamë e gjerë) në çdo modalitet.
-  { name: 'Biofinity Toric', family: 'Biofinity', sphereMin: -10.00, sphereMax: 8.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: 50 },
+  { name: 'Bausch + Lomb ULTRA for Astigmatism', family: 'Bausch + Lomb ULTRA', sphereMin: -9.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.75, axisStep: 10, priority: { new: 4, extended: 4, low: 4 } },
+  // "Acuvue Oasys for Astigmatism" s'ka më prioritet për asnjë modalitet në sheet — mbetet në katalog por
+  // s'sugjerohet më kurrë (u zëvendësua nga "SofLens Toric" në atë vend të radhës).
+  { name: 'Acuvue Oasys for Astigmatism', family: 'Acuvue Oasys', sphereMin: -9.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.75, axisStep: 10, priority: { new: null, extended: null, low: null } },
+  { name: 'SofLens Toric', family: 'SofLens', sphereMin: -9.00, sphereMax: 6.00, cylMin: 0.75, cylMax: 2.75, axisStep: 10, priority: { new: 5, extended: null, low: 3 } },
+  { name: 'TOTAL30 for Astigmatism', family: 'TOTAL30', sphereMin: -10.00, sphereMax: 8.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: { new: 6, extended: 6, low: 6 } },
+  // Biofinity XR Toric s'ka prioritet të veçantë sipas modalitetit në sheet — funksionon si "rasti i fundit"
+  // (gamë e gjerë) në çdo modalitet.
+  { name: 'Biofinity Toric', family: 'Biofinity', sphereMin: -10.00, sphereMax: 8.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: { new: 7, extended: 7, low: 7 } },
   { name: 'Biofinity XR Toric', family: 'Biofinity', sphereMin: -20.00, sphereMax: 20.00, cylMin: 0.75, cylMax: 5.75, axisStep: 5, priority: 99 }
 ];
 
 const SPHERE_BRANDS = [
   { name: 'TopVue Prime', family: 'TopVue Prime', sphereMin: -12.00, sphereMax: 8.00, priority: { new: 1, extended: 1, low: null } },
   { name: 'Air Optix plus HydraGlyde', family: 'Air Optix plus HydraGlyde', sphereMin: -12.00, sphereMax: 8.00, priority: { new: 2, extended: 2, low: null } },
-  { name: 'TopVue Air', family: 'TopVue Air', sphereMin: -12.00, sphereMax: 8.00, priority: { new: 3, extended: 3, low: 1 } },
-  { name: 'Bausch + Lomb ULTRA', family: 'Bausch + Lomb ULTRA', sphereMin: -12.00, sphereMax: 6.00, priority: { new: null, extended: null, low: 2 } },
+  { name: 'TopVue Air', family: 'TopVue Air', sphereMin: -12.00, sphereMax: 8.00, priority: { new: 3, extended: 4, low: 1 } },
+  { name: 'Bausch + Lomb ULTRA', family: 'Bausch + Lomb ULTRA', sphereMin: -12.00, sphereMax: 6.00, priority: { new: null, extended: 3, low: 2 } },
+  { name: 'TOTAL30', family: 'TOTAL30', sphereMin: -12.00, sphereMax: 8.00, priority: { new: null, extended: null, low: null } },
+  { name: 'Proclear Sphere', family: 'Proclear Sphere', sphereMin: -20.00, sphereMax: 20.00, priority: { new: 12, extended: 12, low: 12 } },
+  { name: 'TopVue Monthly Plus', family: 'TopVue Monthly Plus', sphereMin: -15.00, sphereMax: 6.00, priority: { new: 13, extended: 13, low: 11 } },
+  { name: 'Carl Zeiss Contact Day 30 Compatic (6 lenses)', family: 'Carl Zeiss Contact Day 30 Compatic (6 lenses)', sphereMin: -12.00, sphereMax: 8.00, priority: { new: null, extended: null, low: null } },
+  // Sipas rregullit të dyqanit: "SofLens 59" sugjerohet VETËM si homolog sferik kur syri tjetër (toric)
+  // ka marrë "SofLens Toric" — kurrë si rekomandim i pavarur (priority null në çdo modalitet).
+  { name: 'SofLens 59', family: 'SofLens', sphereMin: -9.00, sphereMax: 6.00, priority: { new: null, extended: null, low: null } },
   // Biofinity s'ka prioritet specifik në sheet — "rasti i fundit" për çdo modalitet.
   { name: 'Biofinity', family: 'Biofinity', sphereMin: -12.00, sphereMax: 8.00, priority: 100 }
-  // "Acuvue Oasys" s'ka homolog sferik në stok, dhe "Carl Zeiss Contact Day 30 Compatic (6 lenses)" s'ka gamë të specifikuar ende.
+  // "TOTAL30" dhe "Carl Zeiss Contact Day 30 Compatic (6 lenses)" s'kanë ende prioritet të caktuar në sheet
+  // për asnjë "Lloj përdorimi" — mbeten në katalog (për homologim toric→sferik dhe gati për t'u plotësuar
+  // më vonë), por s'sugjerohen kurrë vetë derisa të plotësohet prioriteti i tyre.
 ];
 
 // Lente ditore (Kohëzgjatja = "Ditore"), sipas "Sygjerimet". Gamat "Sfera nga" për lente ditore ishin
@@ -577,17 +596,15 @@ const SPHERE_BRANDS = [
 const TOPVUE_DAILY_AXIS_CATALOG = [10, 20, 70, 80, 90, 100, 160, 170, 180];
 
 const DAILY_TORIC_BRANDS = [
-  { name: 'TopVue Daily for Astigmatism', family: 'TopVue Daily', sphereMin: -9.00, sphereMax: 0.00, cylMin: 0.75, cylMax: 2.25, axisCatalog: TOPVUE_DAILY_AXIS_CATALOG, priority: { new: 1, extended: 3, low: 1 } },
-  { name: 'Precision1 for Astigmatism', family: 'Precision1', sphereMin: -8.00, sphereMax: 4.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: { new: 2, extended: 2, low: 2 } },
-  { name: 'Biotrue ONEday for Astigmatism', family: 'Biotrue ONEday', sphereMin: -9.00, sphereMax: 4.00, cylMin: 0.75, cylMax: 2.75, axisStep: 10, priority: { new: 3, extended: 1, low: 3 } }
+  { name: 'TopVue Daily for Astigmatism', family: 'TopVue Daily', sphereMin: -9.00, sphereMax: 0.00, cylMin: 0.75, cylMax: 2.25, axisCatalog: TOPVUE_DAILY_AXIS_CATALOG, priority: { new: 2, extended: 3, low: 1 } },
+  { name: 'Precision1 for Astigmatism', family: 'Precision1', sphereMin: -8.00, sphereMax: 4.00, cylMin: 0.75, cylMax: 2.25, axisStep: 10, priority: { new: 1, extended: 1, low: 2 } },
+  { name: 'Biotrue ONEday for Astigmatism', family: 'Biotrue ONEday', sphereMin: -9.00, sphereMax: 4.00, cylMin: 0.75, cylMax: 2.75, axisStep: 10, priority: { new: 3, extended: 2, low: 3 } }
 ];
 
 const DAILY_SPHERE_BRANDS = [
-  { name: 'Precision1', family: 'Precision1', sphereMin: -12.00, sphereMax: 8.00, priority: { new: 1, extended: null, low: null } },
-  { name: 'Biotrue ONEday', family: 'Biotrue ONEday', sphereMin: -12.00, sphereMax: 6.00, priority: { new: 2, extended: null, low: null } },
-  { name: 'TopVue Daily', family: 'TopVue Daily', sphereMin: -12.00, sphereMax: 4.00, priority: { new: 3, extended: null, low: null } }
-  // Për rast thjesht sferik (pa cilindër) me "Ditore", vetëm modaliteti "First-time wearer" ka radhë prioriteti
-  // të specifikuar në sheet — "Extended wear" dhe "Budget" ende s'kanë.
+  { name: 'Precision1', family: 'Precision1', sphereMin: -12.00, sphereMax: 8.00, priority: { new: 1, extended: 3, low: 1 } },
+  { name: 'Biotrue ONEday', family: 'Biotrue ONEday', sphereMin: -12.00, sphereMax: 6.00, priority: { new: 2, extended: 1, low: 2 } },
+  { name: 'TopVue Daily', family: 'TopVue Daily', sphereMin: -12.00, sphereMax: 4.00, priority: { new: 3, extended: 2, low: 3 } }
 ];
 
 function roundToStep(value, step) { return Math.round(value / step) * step; }
@@ -867,6 +884,79 @@ function calcEye(sVal, cVal, aVal, vertexMM, cylConv) {
   };
 }
 
+// Vlerësimi i fushave të hyrjes, sipas rregullave të "Sygjerimet". Mesazhet mbeten fikse në anglisht,
+// pikë për pikë siç janë shkruar në sheet (jo të përkthyera sipas gjuhës së UI).
+const VALIDATION_MSGS = {
+  sphereRange: 'Invalid sphere value. Please enter a value between −20.00 D and +20.00 D.',
+  axisRange: 'Invalid axis value. Please enter a value between 1° and 180°',
+  axisRequired: 'Axis is required when the cylinder value is not 0. Please enter an axis between 1° and 180°',
+  cylMustBeNegative: 'Invalid cylinder value. Please enter a negative cylinder value or select "Plus cylinder"',
+  cylMustBePositive: 'Invalid cylinder value. Please enter a positive cylinder value or select "Minus cylinder"'
+};
+
+// Kthen mesazhin e gabimit të parë të gjetur për një sy (Sferë → Cilindër/konventë → Aks), ose null nëse s'ka gabim.
+function validateEyeInputs(sVal, cVal, aVal, cylConv) {
+  const sRaw = (sVal || '').trim();
+  if (sRaw !== '') {
+    const s = parseFloat(sRaw);
+    if (isNaN(s) || s < -20 || s > 20) return VALIDATION_MSGS.sphereRange;
+  }
+
+  const cRaw = (cVal || '').trim();
+  const c = cRaw === '' ? 0 : parseFloat(cRaw);
+  if (!isNaN(c) && c !== 0) {
+    if (cylConv === 'minus' && c > 0) return VALIDATION_MSGS.cylMustBeNegative;
+    if (cylConv === 'plus' && c < 0) return VALIDATION_MSGS.cylMustBePositive;
+  }
+
+  // Kur cilindri është 0.00, aksi s'ka kuptim në llogaritje fare — nuk vlerësohet (mund të lihet bosh,
+  // 0, ose çfarëdo tjetër). Vlerësimi i aksit (i detyrueshëm + gamë 1–180°) zbatohet VETËM kur cilindri ≠ 0.
+  if (!isNaN(c) && c !== 0) {
+    const aRaw = (aVal || '').trim();
+    if (aRaw === '') return VALIDATION_MSGS.axisRequired;
+    const a = parseFloat(aRaw);
+    if (isNaN(a) || a < 1 || a > 180) return VALIDATION_MSGS.axisRange;
+  }
+
+  return null;
+}
+
+// Fusha "Axis" mbetet gjithmonë e dukshme, por çaktivizohet (e zbehtë, s'pranon vlerë) kur cilindri
+// përkatës është bosh ose 0.00; aktivizohet dhe bëhet e detyrueshme sapo cilindri ndryshon nga 0.00.
+// Nëse cilindri kthehet në 0.00, çdo vlerë ekzistuese e aksit pastrohet.
+function syncAxisFieldState(cylId, axisId) {
+  const cylField = document.getElementById(cylId);
+  const axisField = document.getElementById(axisId);
+  const raw = cylField.value.trim();
+  const n = parseFloat(raw);
+  const isZeroOrEmpty = raw === '' || isNaN(n) || n === 0;
+  if (isZeroOrEmpty) {
+    axisField.value = '';
+    axisField.disabled = true;
+  } else {
+    axisField.disabled = false;
+  }
+}
+[['odC', 'odA'], ['osC', 'osA']].forEach(([cylId, axisId]) => {
+  document.getElementById(cylId).addEventListener('input', function() { syncAxisFieldState(cylId, axisId); });
+});
+// Gjendja fillestare, në ngarkim të faqes (fushat e cilindrit fillojnë bosh -> aksi çaktivizuar).
+syncAxisFieldState('odC', 'odA');
+syncAxisFieldState('osC', 'osA');
+
+// Sferë dhe Cilindër formatohen automatikisht me 2 shifra pas pikës (p.sh. "-3" bëhet "-3.00") — si kur
+// del nga fusha (blur), ashtu edhe (për siguri, nëse fusha ende ka fokusin) sapo shtypet "Llogarit"/Enter.
+function formatSphereCylField(id) {
+  const field = document.getElementById(id);
+  const raw = field.value.trim();
+  if (raw === '') return;
+  const n = parseFloat(raw);
+  if (!isNaN(n)) field.value = n.toFixed(2);
+}
+['odS', 'odC', 'osS', 'osC'].forEach(id => {
+  document.getElementById(id).addEventListener('blur', function() { formatSphereCylField(id); });
+});
+
 // Shtypja e "Enter" në cilëndo fushë hyrjeje (Sferë/Cilindër/Aks, OD ose OS) njëlloj si klikimi i "Llogarit".
 ['odS', 'odC', 'odA', 'osS', 'osC', 'osA'].forEach(id => {
   document.getElementById(id).addEventListener('keydown', function(e) {
@@ -878,10 +968,21 @@ function calcEye(sVal, cVal, aVal, vertexMM, cylConv) {
 });
 
 document.getElementById('calcBtn').addEventListener('click', function() {
+  // Formato Sferë/Cilindër me 2 shifra pas pikës edhe këtu — nëse fusha ende ka fokusin (blur s'ka
+  // arritur të nisë ende), s'duam të mbetet e paformatuar te ekrani i rezultateve/printimit.
+  ['odS', 'odC', 'osS', 'osC'].forEach(formatSphereCylField);
   const vertex = VERTEX_MM_DEFAULT;
   const cylConv = document.getElementById('cylConv').value;
   const wearType = document.getElementById('wearType').value;
   const duration = document.getElementById('duration').value;
+
+  const validationError =
+    validateEyeInputs(document.getElementById('odS').value, document.getElementById('odC').value, document.getElementById('odA').value, cylConv) ||
+    validateEyeInputs(document.getElementById('osS').value, document.getElementById('osC').value, document.getElementById('osA').value, cylConv);
+  if (validationError) {
+    alert(validationError);
+    return;
+  }
 
   const od = calcEye(
     document.getElementById('odS').value,
@@ -991,6 +1092,8 @@ document.getElementById('clearBtn').addEventListener('click', function() {
   document.getElementById('wearType').value = 'new';
   document.getElementById('duration').value = 'monthly';
   document.getElementById('resultsCard').classList.remove('show');
+  syncAxisFieldState('odC', 'odA');
+  syncAxisFieldState('osC', 'osA');
 });
 
 document.getElementById('printBtn').addEventListener('click', function() {
