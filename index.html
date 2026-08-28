@@ -269,7 +269,7 @@
        në ekran; fshihen vetëm toggle-i i gjuhës (s'ka kuptim në letër) dhe shënimet teknike
        "Sphere: rounded to..." / "Priority order..." (formulaNote1/2 — shënuar me .print-hide),
        që s'i duhen klientit në letrën e printuar. */
-    .lang-toggle, .print-hide { display: none !important; }
+    .lang-toggle, .print-hide, .lens-filter-card { display: none !important; }
     @page { size: A4; margin: 10mm; }
     html, body { background: white; }
     body { padding: 0; margin: 0; }
@@ -294,6 +294,114 @@
     .formula-note { margin-top: 4px; font-size: 0.72rem; }
     .result-card { page-break-inside: avoid; }
   }
+
+  /* ---- Filtri i pavarur "Gjej alternativa sipas parametrave të lentes" ----
+     Krejt e shkëputur nga llogaritja/rekomandimet e mësipërme: lexon vetëm katalogun e vet
+     (LENS_CATALOG), s'prek asnjë funksion apo të dhënë të konvertuesit kryesor. */
+  .lens-filter-card { padding: 0; overflow: hidden; }
+  .lens-filter-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: transparent;
+    border: none;
+    padding: 20px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--primary-dark);
+    cursor: pointer;
+    text-align: left;
+  }
+  .lens-filter-toggle .chevron {
+    display: inline-block;
+    transition: transform 0.15s ease;
+    color: #000;
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+  .lens-filter-toggle[aria-expanded="true"] .chevron { transform: rotate(180deg); }
+  .lens-filter-body { padding: 0 20px 20px; border-top: 1px solid var(--border); }
+  .lens-filter-body[hidden] { display: none; }
+  .lens-filter-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-top: 16px;
+  }
+  @media (max-width: 760px) {
+    .lens-filter-row { grid-template-columns: 1fr 1fr; }
+  }
+  .lens-filter-row .field select { width: 100%; }
+  .lens-filter-water-row {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+  .lens-filter-water-label { font-size: 0.82rem; font-weight: 600; color: var(--muted); }
+  .lens-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+  .lens-checkbox input { cursor: pointer; }
+  .lens-filter-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+  #lfSearchBtn { background: var(--primary); color: #fff; padding: 10px 18px; }
+  #lfSearchBtn:hover { background: var(--primary-dark); }
+  #lfClearBtn { background: #e5e7eb; color: var(--text); padding: 10px 18px; }
+  #lfClearBtn:hover { background: #d1d5db; }
+  .lens-filter-results {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .lens-result-card {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 8px 12px;
+  }
+  /* Emri i produktit merr hapësirën e mbetur; nëse s'mjafton, shkurtohet me "…"
+     (jo mbështillet në rresht të dytë) — kështu rreshti mbetet gjithmonë 1. */
+  .lens-result-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    min-width: 40px;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lens-result-manufacturer { color: var(--muted); font-size: 0.85rem; margin-left: auto; white-space: nowrap; flex-shrink: 0; }
+  .lens-result-tags { display: flex; flex-wrap: nowrap; gap: 6px; flex-shrink: 0; }
+  @media (max-width: 620px) {
+    /* Në ekrane shumë të ngushta s'ka vend real për 1 rresht — lejo mbështjellje normale. */
+    .lens-result-card { flex-wrap: wrap; }
+    .lens-result-name { white-space: normal; overflow: visible; text-overflow: clip; flex: 1 1 100%; }
+  }
+  .lens-tag {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 0.78rem;
+    padding: 3px 9px;
+    border-radius: 999px;
+  }
+  .lens-filter-empty { color: var(--muted); font-size: 0.9rem; margin: 0; }
 </style>
 </head>
 <body>
@@ -404,6 +512,76 @@
       monthly lenses, if one eye only fits Biofinity XR Toric, the other eye gets Biofinity Toric if its range allows.
     </p>
   </div>
+
+  <!-- Filtër plotësisht i pavarur nga llogaritja/rekomandimet e mësipërme — bazohet vetëm te katalogu
+       i vet (BC/DIA/Materiali), i mbushur nga një sheet i veçantë në Drive. Mbyllur si default. -->
+  <div class="card lens-filter-card" id="lensFilterCard">
+    <button type="button" class="lens-filter-toggle" id="lensFilterToggle" aria-expanded="false" aria-controls="lensFilterBody">
+      <span data-i18n="lensFilterToggle">Find alternatives by lens parameters</span>
+      <span class="chevron" aria-hidden="true">▾</span>
+    </button>
+    <div class="lens-filter-body" id="lensFilterBody" hidden>
+      <div class="lens-filter-row">
+        <div class="field">
+          <label for="lfType" data-i18n="lfTypeLabel">Type</label>
+          <select id="lfType">
+            <option value="" data-i18n="lfNoPreference">No preference</option>
+            <option value="sphere" data-i18n="lfTypeSphere">Spherical</option>
+            <option value="toric" data-i18n="lfTypeToric">Toric</option>
+            <option value="multifocal" data-i18n="lfTypeMultifocal">Multifocal</option>
+            <option value="multifocal_toric" data-i18n="lfTypeMultifocalToric">Multifocal Toric</option>
+            <option value="colored" data-i18n="lfTypeColored">Colored</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="lfDuration" data-i18n="lfDurationLabel">Replacement schedule</label>
+          <select id="lfDuration">
+            <option value="" data-i18n="lfNoPreference">No preference</option>
+            <option value="daily" data-i18n="durationDaily">Daily</option>
+            <option value="biweekly" data-i18n="lfDurationBiweekly">Two-weekly</option>
+            <option value="monthly" data-i18n="durationMonthly">Monthly</option>
+            <option value="quarterly" data-i18n="lfDurationQuarterly">Quarterly</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="lfBC" data-i18n="lfBCLabel">Base Curve (BC)</label>
+          <select id="lfBC"><option value="" data-i18n="lfNoPreference">No preference</option></select>
+        </div>
+        <div class="field">
+          <label for="lfDIA" data-i18n="lfDIALabel">Diameter (DIA)</label>
+          <select id="lfDIA"><option value="" data-i18n="lfNoPreference">No preference</option></select>
+        </div>
+        <div class="field">
+          <label for="lfSilicone" data-i18n="lfMaterialLabel">Material</label>
+          <select id="lfSilicone">
+            <option value="" data-i18n="lfNoPreference">No preference</option>
+            <option value="yes" data-i18n="lfMaterialSilicone">Silicone Hydrogel</option>
+            <option value="no" data-i18n="lfMaterialHydrogel">Hydrogel</option>
+          </select>
+        </div>
+      </div>
+      <div class="lens-filter-water-row">
+        <span class="lens-filter-water-label" data-i18n="lfWaterFilterLabel">Water Content</span>
+        <label class="lens-checkbox">
+          <input type="checkbox" id="lfWaterLow">
+          <span data-i18n="lfWaterLow">Low (≤40%)</span>
+        </label>
+        <label class="lens-checkbox">
+          <input type="checkbox" id="lfWaterMedium">
+          <span data-i18n="lfWaterMedium">Medium (41–55%)</span>
+        </label>
+        <label class="lens-checkbox">
+          <input type="checkbox" id="lfWaterHigh">
+          <span data-i18n="lfWaterHigh">High (≥56%)</span>
+        </label>
+      </div>
+      <div class="lens-filter-actions">
+        <button type="button" id="lfSearchBtn" data-i18n="lfSearchBtn">Find alternatives</button>
+        <button type="button" id="lfClearBtn" data-i18n="lfClearBtn">Clear filters</button>
+      </div>
+      <div class="lens-filter-results" id="lfResults"></div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -457,7 +635,31 @@ const I18N = {
     warnHighPower: 'One eye has power ≥ 4.00D — vertex correction is significant here; check the vertex distance used.',
     warnCylOutOfCatalog: 'The calculated cylinder exceeds the range of all in-stock brands (up to -5.75D, Biofinity XR Toric) — consult the supplier for a special-order lens.',
     warnNoSharedBrand: 'No single brand covers both eyes at once (Rule #1) — check manually with the supplier.',
-    warnMissingSpherePair: 'One of the selected toric brands has no spherical counterpart in stock — check with the supplier for the spherical eye.'
+    warnMissingSpherePair: 'One of the selected toric brands has no spherical counterpart in stock — check with the supplier for the spherical eye.',
+    lensFilterToggle: 'Find alternatives by lens parameters',
+    lfTypeLabel: 'Type',
+    lfTypeSphere: 'Spherical',
+    lfTypeToric: 'Toric',
+    lfTypeMultifocal: 'Multifocal',
+    lfTypeMultifocalToric: 'Multifocal Toric',
+    lfTypeColored: 'Colored',
+    lfDurationLabel: 'Replacement schedule',
+    lfDurationBiweekly: 'Two-weekly',
+    lfDurationQuarterly: 'Quarterly',
+    lfBCLabel: 'Base Curve (BC)',
+    lfDIALabel: 'Diameter (DIA)',
+    lfMaterialLabel: 'Material',
+    lfMaterialSilicone: 'Silicone Hydrogel',
+    lfMaterialHydrogel: 'Hydrogel',
+    lfNoPreference: 'No preference',
+    lfSearchBtn: 'Find alternatives',
+    lfClearBtn: 'Clear filters',
+    lfEmptyResult: 'No lens found matching the selected parameters.',
+    lfWaterWord: 'water',
+    lfWaterFilterLabel: 'Water Content',
+    lfWaterLow: 'Low (≤40%)',
+    lfWaterMedium: 'Medium (41–55%)',
+    lfWaterHigh: 'High (≥56%)'
   },
   al: {
     headerTitle: 'Konvertues Recetë Syze → Lente Kontakti',
@@ -495,7 +697,31 @@ const I18N = {
     warnHighPower: 'Njëri sy ka fuqi ≥ 4.00D — korrigjimi i vertex-it është domethënës këtu; kontrolloni distancën e vertex-it të përdorur.',
     warnCylOutOfCatalog: 'Cilindri i llogaritur e kalon gamën e të gjitha markave në stok (deri -5.75D, Biofinity XR Toric) — konsultohu me furnitorin për lente me porosi speciale.',
     warnNoSharedBrand: 'S\'ka një markë të vetme që mbulon të dy sytë njëkohësisht (Rregulla #1) — kontrollo manualisht me furnitorin.',
-    warnMissingSpherePair: 'Për njërën nga markat toric të përzgjedhura s\'ka homolog sferik në stok — kontrollo me furnitorin për syrin sferik.'
+    warnMissingSpherePair: 'Për njërën nga markat toric të përzgjedhura s\'ka homolog sferik në stok — kontrollo me furnitorin për syrin sferik.',
+    lensFilterToggle: 'Gjej alternativa sipas parametrave të lentes',
+    lfTypeLabel: 'Lloji',
+    lfTypeSphere: 'Sferike',
+    lfTypeToric: 'Toric',
+    lfTypeMultifocal: 'Multifokale',
+    lfTypeMultifocalToric: 'Multifokale torike',
+    lfTypeColored: 'Me ngjyrë',
+    lfDurationLabel: 'Kohëzgjatja',
+    lfDurationBiweekly: 'Dyjavore',
+    lfDurationQuarterly: 'Tremujore',
+    lfBCLabel: 'Base Curve (BC)',
+    lfDIALabel: 'Diameter (DIA)',
+    lfMaterialLabel: 'Materiali',
+    lfMaterialSilicone: 'Silicone Hydrogel',
+    lfMaterialHydrogel: 'Hydrogel',
+    lfNoPreference: 'Pa preferencë',
+    lfSearchBtn: 'Gjej alternativa',
+    lfClearBtn: 'Pastro filtrat',
+    lfEmptyResult: 'Nuk u gjet asnjë lente që përputhet me parametrat e zgjedhur.',
+    lfWaterWord: 'ujë',
+    lfWaterFilterLabel: 'Përmbajtja e ujit',
+    lfWaterLow: 'E ulët (≤40%)',
+    lfWaterMedium: 'Mesatare (41–55%)',
+    lfWaterHigh: 'E lartë (≥56%)'
   }
 };
 
@@ -550,6 +776,12 @@ function setLang(lang) {
   const resultsCard = document.getElementById('resultsCard');
   if (resultsCard && resultsCard.classList.contains('show')) {
     document.getElementById('calcBtn').click();
+  }
+  // Nëse filtri i pavarur BC/DIA/Materiali ka tashmë rezultate (ose mesazh "s'u gjet"), rifreskoji
+  // teksti i tyre në gjuhën e re — pa ndryshuar filtrat e zgjedhur.
+  const lfResults = document.getElementById('lfResults');
+  if (lfResults && lfResults.innerHTML.trim() !== '') {
+    searchLensCatalog();
   }
 }
 
@@ -1111,6 +1343,354 @@ document.getElementById('calcBtn').addEventListener('click', function() {
   document.getElementById('resultsCard').classList.add('show');
   document.getElementById('resultsCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
 });
+
+// ============================================================================
+// FILTRI I PAVARUR "Gjej alternativa sipas parametrave të lentes"
+// ----------------------------------------------------------------------------
+// I shkëputur plotësisht nga konvertuesi/rekomandimet e mësipërme: LËXON VETËM
+// LENS_CATALOG (marrë nga një sheet i veçantë në Drive, jo TORIC_BRANDS/SPHERE_BRANDS/
+// DAILY_*_BRANDS), dhe s'thërret asnjë funksion të llogaritjes kryesore (calcEye,
+// pairBrandLogicCore, eligibleToricBrands, etj). Mund të përmbajë çfarëdo produkti —
+// jo domosdoshmërisht markat e konvertuesit — sipas asaj çka dyqani vendos në Drive.
+//
+// Shënim: kjo tabelë ende s'ka kolona për gamën e sferës/cilindrit/aksit (siç ka
+// sheet-i kryesor "Sygjerimet"), prandaj filtri për momentin punon vetëm me
+// Lloji/Kohëzgjatja/BC/DIA/Materiali. Nëse dyqani do që filtri të kontrollojë edhe
+// sferë/cilindër/bosht specifik, i duhen shtuar ato kolona te ky sheet i ri.
+// ============================================================================
+const LENS_CATALOG = [
+  { name: '1 Day Acuvue', manufacturer: 'Johnson & Johnson Vision', type: 'sphere', duration: 'daily', bc: [8.5, 9.0], dia: [14.2], material: 'Etafilcon A', silicone: false, water: 58 },
+  { name: '1 Day Acuvue Moist', manufacturer: 'Johnson & Johnson Vision', type: 'sphere', duration: 'daily', bc: [8.5, 9.0], dia: [14.2], material: 'Etafilcon A', silicone: false, water: 58 },
+  { name: '1 Day Acuvue Trueye', manufacturer: 'Johnson & Johnson Vision', type: 'sphere', duration: 'daily', bc: [8.5, 9.0], dia: [14.2], material: 'Narafilcon A', silicone: true, water: 46 },
+  { name: 'Acuvue Oasys 1-Day with HydraLuxe', manufacturer: 'Johnson & Johnson Vision', type: 'sphere', duration: 'daily', bc: [8.5, 9.0], dia: [14.3], material: 'Senofilcon A', silicone: true, water: 38 },
+  { name: 'Biomedics 1 Day Extra', manufacturer: 'CooperVision', type: 'sphere', duration: 'daily', bc: [8.6, 8.8], dia: [14.2], material: 'Ocufilcon D', silicone: false, water: 55 },
+  { name: 'Biotrue ONEDay', manufacturer: 'Bausch + Lomb', type: 'sphere', duration: 'daily', bc: [8.6], dia: [14.2], material: 'Nesofilcon A', silicone: false, water: 78 },
+  { name: 'Clariti 1 Day', manufacturer: 'CooperVision', type: 'sphere', duration: 'daily', bc: [8.6], dia: [14.1], material: 'Somofilcon A', silicone: true, water: 56 },
+  { name: 'Dailies AquaComfort Plus', manufacturer: 'Alcon', type: 'sphere', duration: 'daily', bc: [8.7], dia: [14], material: 'Nelfilcon A', silicone: false, water: 69 },
+  { name: 'Dailies Total 1', manufacturer: 'Alcon', type: 'sphere', duration: 'daily', bc: [8.5], dia: [14.1], material: 'Deleficon A', silicone: true, water: 33 },
+  { name: 'everclear ADM', manufacturer: 'Vision Direct (marke private)', type: 'sphere', duration: 'daily', bc: [8.6], dia: [14.2], material: 'Hioxifilcon A', silicone: false, water: 55 },
+  { name: 'everclear COMFORT', manufacturer: 'Vision Direct (marke private)', type: 'sphere', duration: 'daily', bc: [8.6], dia: [14.2], material: 'Ocufilcon D', silicone: false, water: 55 },
+  { name: 'everclear ELITE', manufacturer: 'Vision Direct (marke private)', type: 'sphere', duration: 'daily', bc: [8.8], dia: [14.1], material: 'Olifilcon B', silicone: true, water: 47 },
+  { name: 'Focus Dailies All Day Comfort', manufacturer: 'Alcon', type: 'sphere', duration: 'daily', bc: [8.6], dia: [13.8], material: 'Nelfilcon A', silicone: false, water: 69 },
+  { name: 'Live Daily Disposable', manufacturer: 'CooperVision', type: 'sphere', duration: 'daily', bc: [8.6], dia: [14], material: 'Somofilcon A', silicone: true, water: 56 },
+  { name: 'MyDay', manufacturer: 'CooperVision', type: 'sphere', duration: 'daily', bc: [8.4], dia: [14.2], material: 'Stenfilcon A', silicone: true, water: 54 },
+  { name: 'Proclear 1 Day', manufacturer: 'CooperVision', type: 'sphere', duration: 'daily', bc: [8.7], dia: [14.2], material: 'Omafilcon B', silicone: false, water: 60 },
+  { name: 'SofLens Daily Disposable', manufacturer: 'Bausch + Lomb', type: 'sphere', duration: 'daily', bc: [8.6], dia: [14.2], material: 'Hilafilcon B', silicone: false, water: 59 },
+  { name: 'Acuvue Vita', manufacturer: 'Johnson & Johnson Vision', type: 'sphere', duration: 'monthly', bc: [8.4, 8.8], dia: [14], material: 'Senofilcon C', silicone: true, water: 41 },
+  { name: 'Air Optix Aqua', manufacturer: 'Alcon', type: 'sphere', duration: 'monthly', bc: [8.6], dia: [14.2], material: 'Lotrafilcon B', silicone: true, water: 33 },
+  { name: 'Air Optix Night & Day Aqua', manufacturer: 'Alcon', type: 'sphere', duration: 'monthly', bc: [8.4, 8.6], dia: [13.8], material: 'Lotrafilcon A', silicone: true, water: 24 },
+  { name: 'Air Optix plus HydraGlyde', manufacturer: 'Alcon', type: 'sphere', duration: 'monthly', bc: [8.6], dia: [14.2], material: 'Lotrafilcon B', silicone: true, water: 33 },
+  { name: 'Avaira', manufacturer: 'CooperVision', type: 'sphere', duration: 'monthly', bc: [8.4, 8.5], dia: [14.2], material: 'Enfilcon A', silicone: true, water: 46 },
+  { name: 'Avaira Vitality', manufacturer: 'CooperVision', type: 'sphere', duration: 'monthly', bc: [8.4], dia: [14.2], material: 'Fanfilcon A', silicone: true, water: 55 },
+  { name: 'Bausch & Lomb Ultra', manufacturer: 'Bausch + Lomb', type: 'sphere', duration: 'monthly', bc: [8.5], dia: [14.2], material: 'Samfilcon A', silicone: true, water: 46 },
+  { name: 'Biofinity', manufacturer: 'CooperVision', type: 'sphere', duration: 'monthly', bc: [8.6], dia: [14], material: 'Comfilcon A', silicone: true, water: 48 },
+  { name: 'Biofinity Energys', manufacturer: 'CooperVision', type: 'sphere', duration: 'monthly', bc: [8.6], dia: [14], material: 'Comfilcon A', silicone: true, water: 48 },
+  { name: 'Biofinity XR', manufacturer: 'CooperVision', type: 'sphere', duration: 'monthly', bc: [8.6], dia: [14], material: 'Comfilcon A', silicone: true, water: 48 },
+  { name: 'Biomedics 55 Evolution', manufacturer: 'CooperVision', type: 'sphere', duration: 'monthly', bc: [8.6, 8.8, 8.9], dia: [14.2], material: 'Ocufilcon D', silicone: false, water: 55 },
+  { name: 'Clariti', manufacturer: 'CooperVision', type: 'sphere', duration: 'monthly', bc: [8.4, 8.8], dia: [14.1], material: 'Somofilcon A', silicone: true, water: 56 },
+  { name: 'Clariti Elite', manufacturer: 'CooperVision', type: 'sphere', duration: 'monthly', bc: [8.6], dia: [14.2], material: 'Somofilcon A', silicone: true, water: 56 },
+  { name: 'everclear AIR', manufacturer: 'Vision Direct (marke private)', type: 'sphere', duration: 'monthly', bc: [8.7], dia: [14], material: 'Olifilcon A', silicone: true, water: 47 },
+  { name: 'everclear UV', manufacturer: 'Vision Direct (marke private)', type: 'sphere', duration: 'monthly', bc: [8.6], dia: [14.2], material: 'Ocufilcon D', silicone: false, water: 55 },
+  { name: 'Extreme H2O 59 Xtra', manufacturer: 'Hydrogel Vision Corporation', type: 'sphere', duration: 'monthly', bc: [8.6], dia: [14.2], material: 'Hioxifilcon D', silicone: false, water: 59 },
+  { name: 'Frequency 55', manufacturer: 'CooperVision', type: 'sphere', duration: 'monthly', bc: [8.6, 8.8, 8.9], dia: [14.2], material: 'Methafilcon A', silicone: false, water: 55 },
+  { name: 'Frequency 55 Aspheric', manufacturer: 'CooperVision', type: 'sphere', duration: 'monthly', bc: [8.4, 8.7], dia: [14.4], material: 'Methafilcon A', silicone: false, water: 55 },
+  { name: 'Proclear', manufacturer: 'CooperVision', type: 'sphere', duration: 'monthly', bc: [8.6], dia: [14.2], material: 'Omafilcon B', silicone: false, water: 62 },
+  { name: 'PureVision', manufacturer: 'Bausch + Lomb', type: 'sphere', duration: 'monthly', bc: [8.3, 8.6], dia: [14], material: 'Balafilcon A', silicone: true, water: 36 },
+  { name: 'PureVision2', manufacturer: 'Bausch + Lomb', type: 'sphere', duration: 'monthly', bc: [8.6], dia: [14], material: 'Balafilcon A', silicone: true, water: 36 },
+  { name: 'SofLens 38', manufacturer: 'Bausch + Lomb', type: 'sphere', duration: 'monthly', bc: [8.4, 8.7, 9.0], dia: [14], material: 'Polymacon', silicone: false, water: 38 },
+  { name: 'SofLens 59', manufacturer: 'Bausch + Lomb', type: 'sphere', duration: 'monthly', bc: [8.6], dia: [14.2], material: 'Hilafilcon B', silicone: false, water: 59 },
+  { name: 'Surevue', manufacturer: 'Johnson & Johnson Vision', type: 'sphere', duration: 'monthly', bc: [8.4, 8.8, 9.1], dia: [14.0, 14.4], material: 'Etafilcon A', silicone: false, water: 58 },
+  { name: '1 Day Acuvue for Astigmatism', manufacturer: 'Johnson & Johnson Vision', type: 'toric', duration: 'daily', bc: [8.5], dia: [14.5], material: 'Etafilcon A', silicone: false, water: 58 },
+  { name: '1 Day Acuvue Moist for Astigmatism', manufacturer: 'Johnson & Johnson Vision', type: 'toric', duration: 'daily', bc: [8.5], dia: [14.5], material: 'Etafilcon A', silicone: false, water: 58 },
+  { name: 'Acuvue Oasys 1-DAY for Astigmatism', manufacturer: 'Johnson & Johnson Vision', type: 'toric', duration: 'daily', bc: [8.5], dia: [14.3], material: 'Senofilcon A', silicone: true, water: 38 },
+  { name: 'Biomedics 1 Day Extra Toric', manufacturer: 'CooperVision', type: 'toric', duration: 'daily', bc: [8.7], dia: [14.5], material: 'Ocufilcon D', silicone: false, water: 55 },
+  { name: 'Biotrue ONEday for Astigmatism', manufacturer: 'Bausch + Lomb', type: 'toric', duration: 'daily', bc: [8.4], dia: [14.5], material: 'Nesofilcon A', silicone: false, water: 78 },
+  { name: 'Clariti 1 Day Toric', manufacturer: 'CooperVision', type: 'toric', duration: 'daily', bc: [8.6], dia: [14.3], material: 'Somofilcon A', silicone: true, water: 56 },
+  { name: 'Dailies AquaComfort Plus Toric', manufacturer: 'Alcon', type: 'toric', duration: 'daily', bc: [8.8], dia: [14.4], material: 'Nelfilcon A', silicone: false, water: 69 },
+  { name: 'Focus Dailies Toric', manufacturer: 'Alcon', type: 'toric', duration: 'daily', bc: [8.6], dia: [14.2], material: 'Nelfilcon A', silicone: false, water: 69 },
+  { name: 'MyDay Toric', manufacturer: 'CooperVision', type: 'toric', duration: 'daily', bc: [8.6], dia: [14.5], material: 'Stenfilcon A', silicone: true, water: 54 },
+  { name: 'Soflens Daily for Astigmatism', manufacturer: 'Bausch + Lomb', type: 'toric', duration: 'daily', bc: [8.6], dia: [14.2], material: 'Hilafilcon B', silicone: false, water: 59 },
+  { name: 'Acuvue Advance for Astigmatism', manufacturer: 'Johnson & Johnson Vision', type: 'toric', duration: 'biweekly', bc: [8.6], dia: [14.5], material: 'Galyfilcon A', silicone: true, water: 47 },
+  { name: 'Acuvue Oasys for Astigmatism', manufacturer: 'Johnson & Johnson Vision', type: 'toric', duration: 'biweekly', bc: [8.6], dia: [14.5], material: 'Senofilcon A', silicone: true, water: 38 },
+  { name: 'Air Optix for Astigmatism', manufacturer: 'Alcon', type: 'toric', duration: 'monthly', bc: [8.7], dia: [14.5], material: 'Lotrafilcon B', silicone: true, water: 33 },
+  { name: 'Air Optix plus Hydraglyde for Astigmatism', manufacturer: 'Alcon', type: 'toric', duration: 'monthly', bc: [8.7], dia: [14.5], material: 'Lotrafilcon B', silicone: true, water: 33 },
+  { name: 'Avaira Toric', manufacturer: 'CooperVision', type: 'toric', duration: 'monthly', bc: [8.5], dia: [14.5], material: 'Enfilcon A', silicone: true, water: 46 },
+  { name: 'Avaira Vitality Toric', manufacturer: 'CooperVision', type: 'toric', duration: 'monthly', bc: [8.5], dia: [14.5], material: 'Fanfilcon A', silicone: true, water: 55 },
+  { name: 'Bausch & Lomb Ultra for Astigmatism', manufacturer: 'Bausch + Lomb', type: 'toric', duration: 'monthly', bc: [8.6], dia: [14.5], material: 'Samfilcon A', silicone: true, water: 46 },
+  { name: 'Biofinity Toric', manufacturer: 'CooperVision', type: 'toric', duration: 'monthly', bc: [8.7], dia: [14.5], material: 'Comfilcon A', silicone: true, water: 48 },
+  { name: 'Biofinity XR Toric', manufacturer: 'CooperVision', type: 'toric', duration: 'monthly', bc: [8.7], dia: [14.5], material: 'Comfilcon A', silicone: true, water: 48 },
+  { name: 'Biomedics Toric', manufacturer: 'CooperVision', type: 'toric', duration: 'monthly', bc: [8.7], dia: [14.5], material: 'Ocufilcon D', silicone: false, water: 55 },
+  { name: 'Clariti Toric', manufacturer: 'CooperVision', type: 'toric', duration: 'monthly', bc: [8.7], dia: [14.4], material: 'Somofilcon A', silicone: true, water: 56 },
+  { name: 'Frequency Xcel Toric', manufacturer: 'CooperVision', type: 'toric', duration: 'monthly', bc: [8.7], dia: [14.4], material: 'Methafilcon A', silicone: false, water: 55 },
+  { name: 'Frequency Xcel Toric XR', manufacturer: 'CooperVision', type: 'toric', duration: 'monthly', bc: [8.7], dia: [14.4], material: 'Methafilcon A', silicone: false, water: 55 },
+  { name: 'Proclear Toric', manufacturer: 'CooperVision', type: 'toric', duration: 'monthly', bc: [8.4, 8.8], dia: [14.4], material: 'Omafilcon B', silicone: false, water: 62 },
+  { name: 'Proclear Toric XR', manufacturer: 'CooperVision', type: 'toric', duration: 'monthly', bc: [8.8], dia: [14.4], material: 'Omafilcon B', silicone: false, water: 59 },
+  { name: 'PureVision Toric', manufacturer: 'Bausch + Lomb', type: 'toric', duration: 'monthly', bc: [8.7], dia: [14], material: 'Balafilcon A', silicone: true, water: 36 },
+  { name: 'PureVision2 for Astigmatism', manufacturer: 'Bausch + Lomb', type: 'toric', duration: 'monthly', bc: [8.9], dia: [14.5], material: 'Balafilcon A', silicone: true, water: 36 },
+  { name: 'SofLens Toric', manufacturer: 'Bausch + Lomb', type: 'toric', duration: 'monthly', bc: [8.5], dia: [14.5], material: 'Alphafilcon A', silicone: false, water: 66 },
+  { name: '1 Day Acuvue Moist Multifocal', manufacturer: 'Johnson & Johnson Vision', type: 'multifocal', duration: 'daily', bc: [8.4], dia: [14.3], material: 'Etafilcon A', silicone: false, water: 58 },
+  { name: 'Biotrue ONEday for Presbyopia', manufacturer: 'Bausch + Lomb', type: 'multifocal', duration: 'daily', bc: [8.6], dia: [14.2], material: 'Nesofilcon A', silicone: false, water: 78 },
+  { name: 'Clariti 1 Day Multifocal', manufacturer: 'CooperVision', type: 'multifocal', duration: 'daily', bc: [8.6], dia: [14.1], material: 'Somofilcon A', silicone: true, water: 56 },
+  { name: 'Dailies AquaComfort Plus Multifocal', manufacturer: 'Alcon', type: 'multifocal', duration: 'daily', bc: [8.7], dia: [14], material: 'Nelfilcon A', silicone: false, water: 69 },
+  { name: 'Dailies Total 1 Multifocal', manufacturer: 'Alcon', type: 'multifocal', duration: 'daily', bc: [8.5], dia: [14.1], material: 'Delefilcon A', silicone: true, water: 33 },
+  { name: 'Focus Dailies Progressives', manufacturer: 'Alcon', type: 'multifocal', duration: 'daily', bc: [8.6], dia: [13.8], material: 'Nelfilcon A', silicone: false, water: 69 },
+  { name: 'Proclear 1 Day Multifocal', manufacturer: 'CooperVision', type: 'multifocal', duration: 'daily', bc: [8.7], dia: [14.2], material: 'Omafilcon A', silicone: false, water: 60 },
+  { name: 'Acuvue Bifocal', manufacturer: 'Johnson & Johnson Vision', type: 'multifocal', duration: 'biweekly', bc: [8.5], dia: [14.2], material: 'Etafilcon A', silicone: false, water: 58 },
+  { name: 'Acuvue Oasys for Presbyopia', manufacturer: 'Johnson & Johnson Vision', type: 'multifocal', duration: 'biweekly', bc: [8.4], dia: [14.3], material: 'Senofilcon A', silicone: true, water: 38 },
+  { name: 'Air Optix Aqua Multifocal', manufacturer: 'Alcon', type: 'multifocal', duration: 'monthly', bc: [8.6], dia: [14.2], material: 'Lotrafilcon B', silicone: true, water: 33 },
+  { name: 'Air Optix plus Hydraglyde Multifocal', manufacturer: 'Alcon', type: 'multifocal', duration: 'monthly', bc: [8.6], dia: [14.2], material: 'Lotrafilcon B', silicone: true, water: 33 },
+  { name: 'Bausch & Lomb Ultra for Presbyopia', manufacturer: 'Bausch + Lomb', type: 'multifocal', duration: 'monthly', bc: [8.5], dia: [14.2], material: 'Samfilcon A', silicone: true, water: 46 },
+  { name: 'Biofinity Multifocal', manufacturer: 'CooperVision', type: 'multifocal', duration: 'monthly', bc: [8.6], dia: [14], material: 'Comfilcon A', silicone: true, water: 48 },
+  { name: 'Clariti Multifocal', manufacturer: 'CooperVision', type: 'multifocal', duration: 'monthly', bc: [8.7], dia: [14.2], material: 'Somofilcon A', silicone: true, water: 56 },
+  { name: 'Proclear EP', manufacturer: 'CooperVision', type: 'multifocal', duration: 'monthly', bc: [8.7], dia: [14.4], material: 'Omafilcon A', silicone: false, water: 60 },
+  { name: 'Proclear Multifocal', manufacturer: 'CooperVision', type: 'multifocal', duration: 'monthly', bc: [8.7], dia: [14.4], material: 'Omafilcon B', silicone: false, water: 62 },
+  { name: 'Proclear Multifocal XR', manufacturer: 'CooperVision', type: 'multifocal', duration: 'monthly', bc: [8.7], dia: [14.4], material: 'Omafilcon B', silicone: false, water: 62 },
+  { name: 'PureVision Multifocal', manufacturer: 'Bausch + Lomb', type: 'multifocal', duration: 'monthly', bc: [8.6], dia: [14], material: 'Balafilcon A', silicone: true, water: 36 },
+  { name: 'PureVision 2 for Presbyopia', manufacturer: 'Bausch + Lomb', type: 'multifocal', duration: 'monthly', bc: [8.6], dia: [14], material: 'Balafilcon A', silicone: true, water: 36 },
+  { name: 'SofLens Multifocal', manufacturer: 'Bausch + Lomb', type: 'multifocal', duration: 'monthly', bc: [8.5, 8.8], dia: [14.5], material: 'Polymacon', silicone: false, water: 39 },
+  { name: 'Proclear Multifocal Toric', manufacturer: 'CooperVision', type: 'multifocal_toric', duration: 'monthly', bc: [8.4, 8.8], dia: [14.4], material: 'Omafilcon B', silicone: false, water: 62 },
+  { name: '1 Day Acuvue Define Shimmer', manufacturer: 'Johnson & Johnson Vision', type: 'colored', duration: 'daily', bc: [8.5], dia: [14.2], material: 'Etafilcon A', silicone: false, water: 58 },
+  { name: '1 Day Acuvue Define Sparkle', manufacturer: 'Johnson & Johnson Vision', type: 'colored', duration: 'daily', bc: [8.5], dia: [14.2], material: 'Etafilcon A', silicone: false, water: 58 },
+  { name: 'FreshLook Illuminate', manufacturer: 'Alcon', type: 'colored', duration: 'daily', bc: [8.6], dia: [13.8], material: 'Nelfilcon A', silicone: false, water: 69 },
+  { name: 'FreshLook One-Day', manufacturer: 'Alcon', type: 'colored', duration: 'daily', bc: [8.6], dia: [13.8], material: 'Nelfilcon A', silicone: false, water: 69 },
+  { name: 'Air Optix Colors', manufacturer: 'Alcon', type: 'colored', duration: 'monthly', bc: [8.6], dia: [14.2], material: 'Lotrafilcon B', silicone: true, water: 33 },
+  { name: 'Expressions Colors', manufacturer: 'CooperVision', type: 'colored', duration: 'monthly', bc: [8.7], dia: [14.4], material: 'Methafilcon A', silicone: false, water: 55 },
+  { name: 'FreshLook Colorblends', manufacturer: 'Alcon', type: 'colored', duration: 'monthly', bc: [8.6], dia: [14.5], material: 'Phemfilcon A', silicone: false, water: 55 },
+  { name: 'FreshLook Colors', manufacturer: 'Alcon', type: 'colored', duration: 'monthly', bc: [8.6], dia: [14.5], material: 'Phemfilcon A', silicone: false, water: 55 },
+  { name: 'FreshLook Dimensions', manufacturer: 'Alcon', type: 'colored', duration: 'monthly', bc: [8.6], dia: [14.5], material: 'Phemfilcon A', silicone: false, water: 55 },
+  { name: 'SofLens Natural Colors', manufacturer: 'Bausch + Lomb', type: 'colored', duration: 'monthly', bc: [8.7], dia: [14], material: 'Polymacon B', silicone: false, water: 39 },
+  { name: 'TopVue Air', manufacturer: 'TopVue', type: 'sphere', duration: 'monthly', bc: [8.6], dia: [14.2], material: 'Innofilcon A', silicone: true, water: 45 },
+  { name: 'TopVue Air Multifocal', manufacturer: 'TopVue', type: 'multifocal', duration: 'monthly', bc: [8.6], dia: [14.2], material: 'Innofilcon A', silicone: true, water: 45 },
+  { name: 'TopVue Air for Astigmatism', manufacturer: 'TopVue', type: 'toric', duration: 'monthly', bc: [8.6], dia: [14.2], material: 'Innofilcon A', silicone: true, water: 45 },
+  { name: 'TopVue Blue Blocker', manufacturer: 'TopVue', type: 'sphere', duration: 'daily', bc: [8.6], dia: [14.2], material: 'Methafilcon A', silicone: false, water: 55 },
+  { name: 'TopVue Color', manufacturer: 'TopVue', type: 'colored', duration: 'monthly', bc: [8.6], dia: [14.2], material: 'Methafilcon A', silicone: false, water: 55 },
+  { name: 'TopVue Color Daily (10 lente)', manufacturer: 'TopVue', type: 'colored', duration: 'daily', bc: [8.6], dia: [14.2], material: 'Polyhema', silicone: false, water: 43 },
+  { name: 'TopVue Daily', manufacturer: 'TopVue', type: 'sphere', duration: 'daily', bc: [8.5], dia: [14.2], material: 'Etafilcon A', silicone: false, water: 58 },
+  { name: 'TopVue Daily for Astigmatism', manufacturer: 'TopVue', type: 'toric', duration: 'daily', bc: [8.7], dia: [14.5], material: 'Etafilcon A', silicone: false, water: 58 },
+  { name: 'TopVue Daily Color (2 lente)', manufacturer: 'TopVue', type: 'colored', duration: 'daily', bc: [8.6], dia: [14.3], material: 'Methafilcon B', silicone: false, water: 57 },
+  { name: 'TopVue Elite+', manufacturer: 'TopVue', type: 'sphere', duration: 'daily', bc: [8.6], dia: [14.2], material: 'Bioxifilcon A', silicone: false, water: 58 },
+  { name: 'TopVue Monthly', manufacturer: 'TopVue', type: 'sphere', duration: 'monthly', bc: [8.6], dia: [14], material: 'Polymacon', silicone: false, water: 38 },
+  { name: 'TopVue One+', manufacturer: 'TopVue', type: 'sphere', duration: 'daily', bc: [8.5], dia: [14.2], material: 'Toufilcon B', silicone: true, water: 50 },
+  { name: 'TopVue Plus', manufacturer: 'TopVue', type: 'sphere', duration: 'monthly', bc: [8.6], dia: [14.3], material: 'Methafilcon A', silicone: false, water: 55 },
+  { name: 'TopVue Premium', manufacturer: 'TopVue', type: 'sphere', duration: 'biweekly', bc: [8.6], dia: [14.2], material: 'Innofilcon A', silicone: true, water: 45 },
+  { name: 'TopVue Premium for Astigmatism', manufacturer: 'TopVue', type: 'toric', duration: 'biweekly', bc: [8.6], dia: [14.2], material: 'Innofilcon A', silicone: true, water: 45 },
+  { name: 'TopVue Prime', manufacturer: 'TopVue', type: 'sphere', duration: 'monthly', bc: [8.6], dia: [14], material: 'Comfilcon A', silicone: true, water: 48 },
+  { name: 'TopVue Prime for Astigmatism', manufacturer: 'TopVue', type: 'toric', duration: 'monthly', bc: [8.7], dia: [14.5], material: 'Comfilcon A', silicone: true, water: 48 },
+  { name: 'TopVue Prime Multifocal', manufacturer: 'TopVue', type: 'multifocal', duration: 'monthly', bc: [8.6], dia: [14], material: 'Comfilcon A', silicone: true, water: 48 },
+  { name: 'Carl Zeiss Contact Day 30 Compatic', manufacturer: 'Carl Zeiss', type: 'sphere', duration: 'monthly', bc: [8.90, 8.80, 8.60], dia: [14.2], material: 'Vitafilcon A', silicone: false, water: 54 },
+  { name: 'Contact Life Spheric', manufacturer: 'Wöhlk', type: 'sphere', duration: 'monthly', bc: [8.90, 8.80, 8.60, 8.30], dia: [14.20, 13.60], material: 'Vitafilcon A', silicone: false, water: 54 },
+  { name: 'Dailies TOTAL1 for Astigmatism', manufacturer: 'Alcon', type: 'toric', duration: 'daily', bc: [8.6], dia: [14.5], material: 'Delefilcon A', silicone: true, water: 33 },
+  { name: 'Miru 1 Day', manufacturer: 'Menicon', type: 'sphere', duration: 'daily', bc: [8.6], dia: [14.2], material: 'Hioxifilcon A', silicone: false, water: 57 },
+  { name: 'Miru 1 Day UpSide', manufacturer: 'Menicon', type: 'sphere', duration: 'daily', bc: [8.4], dia: [14.2], material: 'Midafilcon A', silicone: true, water: 56 },
+  { name: 'Miru 1 Month', manufacturer: 'Menicon', type: 'sphere', duration: 'monthly', bc: [8.60, 8.30], dia: [14], material: 'Asmofilcon A', silicone: true, water: 40 },
+  { name: 'Miru 1 Month Menicon for Astigmatism', manufacturer: 'Menicon', type: 'toric', duration: 'monthly', bc: [8.6], dia: [14], material: 'Asmofilcon A', silicone: true, water: 40 },
+  { name: 'Precision1', manufacturer: 'Alcon', type: 'sphere', duration: 'daily', bc: [8.3], dia: [14.2], material: 'Verofilcon A', silicone: true, water: 51 },
+  { name: 'Precision1 for Astigmatism', manufacturer: 'Alcon', type: 'toric', duration: 'daily', bc: [8.5], dia: [14.5], material: 'Verofilcon A', silicone: true, water: 51 },
+  { name: 'TOTAL30', manufacturer: 'Alcon', type: 'sphere', duration: 'monthly', bc: [8.4], dia: [14.2], material: 'Lehfilcon A', silicone: true, water: 55 },
+  { name: 'TOTAL30 Multifocal', manufacturer: 'Alcon', type: 'multifocal', duration: 'monthly', bc: [8.4], dia: [14.2], material: 'Lehfilcon A', silicone: true, water: 55 },
+  { name: 'TOTAL30 for Astigmatism', manufacturer: 'Alcon', type: 'toric', duration: 'monthly', bc: [8.6], dia: [14.5], material: 'Lehfilcon A', silicone: true, water: 55 },
+  { name: 'Zeiss Contact Day 1 Spheric', manufacturer: 'Carl Zeiss', type: 'sphere', duration: 'daily', bc: [8.8], dia: [14.2], material: 'Ocufilcon D', silicone: false, water: 58 },
+  { name: 'Acuvue Oasys', manufacturer: 'Johnson & Johnson', type: 'sphere', duration: 'biweekly', bc: [8.40, 8.80], dia: [14], material: 'Senofilcon A', silicone: true, water: 38 },
+  { name: 'Acuvue Oasys Max 1-Day', manufacturer: 'Johnson & Johnson', type: 'sphere', duration: 'daily', bc: [8.50, 9.00], dia: [14.3], material: 'Senofilcon A', silicone: true, water: 38 },
+  { name: 'Acuvue Oasys Max 1-Day for Astigmatism', manufacturer: 'Johnson & Johnson', type: 'toric', duration: 'daily', bc: [8.5], dia: [14.3], material: 'Senofilcon A', silicone: true, water: 38 },
+  { name: 'Acuvue Oasys Multifocal', manufacturer: 'Johnson & Johnson', type: 'multifocal', duration: 'biweekly', bc: [8.4], dia: [14.3], material: 'Senofilcon A', silicone: true, water: 38 },
+  { name: 'Bausch + Lomb ULTRA Multifocal for Astigmatism', manufacturer: 'Bausch + Lomb', type: 'multifocal_toric', duration: 'monthly', bc: [8.6], dia: [14.5], material: 'Samfilcon A', silicone: true, water: 46 },
+  { name: 'Bausch + Lomb ULTRA One Day', manufacturer: 'Bausch + Lomb', type: 'sphere', duration: 'daily', bc: [8.6], dia: [14.2], material: 'Kalifilcon A', silicone: true, water: 55 },
+  { name: 'CRAZY LENS', manufacturer: 'Gelflex', type: 'colored', duration: 'daily', bc: [8.6], dia: [14.2], material: 'Polyhema', silicone: false, water: 43 },
+  { name: 'Clear 1-Day', manufacturer: 'ClearLab', type: 'sphere', duration: 'daily', bc: [8.70, 8.80], dia: [14.2], material: 'Hioxifilcon A', silicone: false, water: 58 },
+  { name: 'Clear 58', manufacturer: 'ClearLab', type: 'sphere', duration: 'monthly', bc: [8.7], dia: [14.00, 14.50], material: 'Etafilcon A', silicone: false, water: 58 },
+  { name: 'Clear All-Day', manufacturer: 'ClearLab', type: 'sphere', duration: 'monthly', bc: [8.6], dia: [14.2], material: 'Hioxifilcon A', silicone: false, water: 57 },
+  { name: 'ColourVUE BigEyes', manufacturer: 'Maxvue Vision', type: 'colored', duration: 'quarterly', bc: [8.6], dia: [14.00, 15.00], material: 'Hydrogel Terpolymer', silicone: false, water: 42 },
+  { name: 'ColourVUE Glamour', manufacturer: 'Maxvue Vision', type: 'colored', duration: 'quarterly', bc: [8.6], dia: [14], material: 'Hydrogel Terpolymer', silicone: false, water: 42 },
+  { name: 'Gelone Monthly', manufacturer: 'Gelone', type: 'sphere', duration: 'monthly', bc: [8.8], dia: [14.1], material: 'Toufilcon B', silicone: true, water: 50 },
+  { name: 'Adore', manufacturer: 'Maxvue Vision', type: 'colored', duration: 'quarterly', bc: [8.6], dia: [14], material: 'Polymacon', silicone: true, water: 38 }
+];
+
+// ---- Renditja e rezultateve të filtrit (sipas "Rregulla renditje alternativa sipas parametrave"
+// te sheet-i i ri) — VETËM LEXON emrat/prioritetet e TORIC_BRANDS/SPHERE_BRANDS/DAILY_*_BRANDS
+// si referencë; s'i ndryshon, s'i thërret, s'ndikon fare te llogaritja/rekomandimet kryesore.
+//
+// 1) Markë që EDHE ekziston te konvertuesi kryesor DHE ka prioritet (të paktën një nga
+//    First-time/Extended/Budget jo null) — renditur sipas vlerës më të mirë (më të vogël) mes tyre.
+// 2) Markë që ekziston te konvertuesi kryesor por pa asnjë prioritet (të tria null).
+// 3) Markë e prodhuesit TopVue (normalizuar) që s'ekziston fare te konvertuesi kryesor.
+// 4) Pjesa tjetër, sipas prodhuesit: Alcon → Bausch + Lomb → Johnson & Johnson → CooperVision →
+//    të tjerët alfabetikisht. Brenda çdo grupi/prodhuesi, alfabetikisht sipas emrit të produktit.
+function bestPriorityValue(priority) {
+  if (priority === null || priority === undefined) return null;
+  if (typeof priority === 'number') return priority;
+  const vals = [priority.new, priority.extended, priority.low].filter(function(v) { return v !== null && v !== undefined; });
+  if (!vals.length) return null;
+  return Math.min.apply(null, vals);
+}
+
+const CONVERTER_BRAND_INDEX = {};
+[].concat(TORIC_BRANDS, SPHERE_BRANDS, DAILY_TORIC_BRANDS, DAILY_SPHERE_BRANDS).forEach(function(b) {
+  CONVERTER_BRAND_INDEX[b.name] = bestPriorityValue(b.priority);
+});
+
+const MANUFACTURER_ORDER = ['Alcon', 'Bausch + Lomb', 'Johnson & Johnson', 'CooperVision'];
+
+function normalizeManufacturer(m) {
+  if (!m) return '';
+  let s = m.trim();
+  if (/^Johnson\s*(&|and)\s*Johnson(\s*Vision)?$/i.test(s)) s = 'Johnson & Johnson';
+  else if (/^Bausch\s*(&|\+|and)\s*Lomb$/i.test(s)) s = 'Bausch + Lomb';
+  else if (/^CooperVision$/i.test(s)) s = 'CooperVision';
+  else if (/^Alcon$/i.test(s)) s = 'Alcon';
+  else if (/^TopVue$/i.test(s)) s = 'TopVue';
+  return s;
+}
+
+function lensResultTier(p) {
+  if (CONVERTER_BRAND_INDEX.hasOwnProperty(p.name)) {
+    const bp = CONVERTER_BRAND_INDEX[p.name];
+    if (bp !== null) return { tier: 1, key: bp };
+    return { tier: 2, key: 0, mfr: '' };
+  }
+  const mfr = normalizeManufacturer(p.manufacturer);
+  if (mfr === 'TopVue') return { tier: 3, key: 0, mfr: mfr };
+  const idx = MANUFACTURER_ORDER.indexOf(mfr);
+  return { tier: 4, key: idx === -1 ? MANUFACTURER_ORDER.length : idx, mfr: mfr };
+}
+
+function compareLensResults(a, b) {
+  const ta = lensResultTier(a);
+  const tb = lensResultTier(b);
+  if (ta.tier !== tb.tier) return ta.tier - tb.tier;
+  if (ta.tier === 1 && ta.key !== tb.key) return ta.key - tb.key;
+  if (ta.tier === 4 && ta.key !== tb.key) return ta.key - tb.key;
+  if (ta.tier === 4 && ta.key === MANUFACTURER_ORDER.length && ta.mfr !== tb.mfr) {
+    return ta.mfr.localeCompare(tb.mfr);
+  }
+  return a.name.localeCompare(b.name);
+}
+
+function populateLensFilterOptions() {
+  const bcSet = new Set();
+  const diaSet = new Set();
+  LENS_CATALOG.forEach(function(p) {
+    (p.bc || []).forEach(function(v) { bcSet.add(v); });
+    (p.dia || []).forEach(function(v) { diaSet.add(v); });
+  });
+  const bcSel = document.getElementById('lfBC');
+  const diaSel = document.getElementById('lfDIA');
+  Array.from(bcSet).sort(function(a, b) { return a - b; }).forEach(function(v) {
+    const opt = document.createElement('option');
+    opt.value = String(v);
+    opt.textContent = v.toFixed(1);
+    bcSel.appendChild(opt);
+  });
+  Array.from(diaSet).sort(function(a, b) { return a - b; }).forEach(function(v) {
+    const opt = document.createElement('option');
+    opt.value = String(v);
+    opt.textContent = v.toFixed(1);
+    diaSel.appendChild(opt);
+  });
+}
+
+// E ulët ≤40% / Mesatare 41–55% / E lartë ≥56% — intervale pa mbivendosje, mbulojnë 0–100%.
+function waterBucket(water) {
+  if (typeof water !== 'number') return null;
+  if (water <= 40) return 'low';
+  if (water <= 55) return 'medium';
+  return 'high';
+}
+
+function searchLensCatalog() {
+  const type = document.getElementById('lfType').value;
+  const duration = document.getElementById('lfDuration').value;
+  const bc = document.getElementById('lfBC').value;
+  const dia = document.getElementById('lfDIA').value;
+  const silicone = document.getElementById('lfSilicone').value;
+  const waterBuckets = [];
+  if (document.getElementById('lfWaterLow').checked) waterBuckets.push('low');
+  if (document.getElementById('lfWaterMedium').checked) waterBuckets.push('medium');
+  if (document.getElementById('lfWaterHigh').checked) waterBuckets.push('high');
+
+  const matches = LENS_CATALOG.filter(function(p) {
+    if (type && p.type !== type) return false;
+    if (duration && p.duration !== duration) return false;
+    if (bc && !(p.bc || []).some(function(v) { return Math.abs(v - parseFloat(bc)) < 0.001; })) return false;
+    if (dia && !(p.dia || []).some(function(v) { return Math.abs(v - parseFloat(dia)) < 0.001; })) return false;
+    if (silicone === 'yes' && !p.silicone) return false;
+    if (silicone === 'no' && p.silicone) return false;
+    if (waterBuckets.length && waterBuckets.indexOf(waterBucket(p.water)) === -1) return false;
+    return true;
+  });
+
+  matches.sort(compareLensResults);
+  renderLensResults(matches);
+}
+
+function renderLensResults(matches) {
+  const container = document.getElementById('lfResults');
+  container.innerHTML = '';
+  if (!matches.length) {
+    const empty = document.createElement('p');
+    empty.className = 'lens-filter-empty';
+    empty.textContent = t('lfEmptyResult');
+    container.appendChild(empty);
+    return;
+  }
+  matches.forEach(function(p) {
+    const card = document.createElement('div');
+    card.className = 'lens-result-card';
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'lens-result-name';
+    nameEl.textContent = p.name;
+    nameEl.title = p.name; // shfaq emrin e plotë si tooltip kur shkurtohet me "…"
+    card.appendChild(nameEl);
+
+    const tagsEl = document.createElement('div');
+    tagsEl.className = 'lens-result-tags';
+    const tags = [];
+    if (p.bc && p.bc.length) tags.push('BC ' + p.bc.map(function(v) { return v.toFixed(1); }).join('/'));
+    if (p.dia && p.dia.length) tags.push('DIA ' + p.dia.map(function(v) { return v.toFixed(1); }).join('/'));
+    tags.push(p.silicone ? t('lfMaterialSilicone') : t('lfMaterialHydrogel'));
+    if (typeof p.water === 'number') tags.push(p.water + '% ' + t('lfWaterWord'));
+    tags.forEach(function(txt) {
+      const tag = document.createElement('span');
+      tag.className = 'lens-tag';
+      tag.textContent = txt;
+      tagsEl.appendChild(tag);
+    });
+    card.appendChild(tagsEl);
+
+    // Prodhuesi qëndron gjithmonë në fund të rreshtit (pas name + tags), jo menjëherë pas emrit.
+    if (p.manufacturer) {
+      const mfrEl = document.createElement('span');
+      mfrEl.className = 'lens-result-manufacturer';
+      mfrEl.textContent = p.manufacturer;
+      card.appendChild(mfrEl);
+    }
+
+    container.appendChild(card);
+  });
+}
+
+document.getElementById('lensFilterToggle').addEventListener('click', function() {
+  const body = document.getElementById('lensFilterBody');
+  const expanded = this.getAttribute('aria-expanded') === 'true';
+  this.setAttribute('aria-expanded', String(!expanded));
+  body.hidden = expanded;
+});
+
+document.getElementById('lfSearchBtn').addEventListener('click', searchLensCatalog);
+document.getElementById('lfClearBtn').addEventListener('click', function() {
+  document.getElementById('lfType').value = '';
+  document.getElementById('lfDuration').value = '';
+  document.getElementById('lfBC').value = '';
+  document.getElementById('lfDIA').value = '';
+  document.getElementById('lfSilicone').value = '';
+  document.getElementById('lfWaterLow').checked = false;
+  document.getElementById('lfWaterMedium').checked = false;
+  document.getElementById('lfWaterHigh').checked = false;
+  document.getElementById('lfResults').innerHTML = '';
+});
+
+populateLensFilterOptions();
 
 document.getElementById('clearBtn').addEventListener('click', function() {
   ['odS','odC','odA','osS','osC','osA'].forEach(id => document.getElementById(id).value = '');
