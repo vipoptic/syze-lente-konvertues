@@ -414,6 +414,7 @@ function round5(x) { return Math.round(x / 5) * 5; }
 // Sferë: hapa 0.25D deri ±6.00D, pastaj hapa 0.50D nga ±6.50D deri ±20.00D
 // Cilindër: vetëm -0.75 / -1.25 / -1.75 / -2.25 / -2.75 / -3.25 / -3.75 / -4.25 / -4.75 / -5.25 / -5.75 (hapa 0.50D, minimumi 0.75D, max -5.75 nga Biofinity XR Toric)
 const CYL_CATALOG = [0, 0.75, 1.25, 1.75, 2.25, 2.75, 3.25, 3.75, 4.25, 4.75, 5.25, 5.75];
+const CYL_CATALOG_MAX = CYL_CATALOG[CYL_CATALOG.length - 1];
 
 // Distanca e vertex-it: fikse në 12mm (vlerë standarde tipike për syze) — s'është më e ndryshueshme nga UI.
 const VERTEX_MM_DEFAULT = 12;
@@ -510,6 +511,9 @@ const WHY_TEXT = {
 // Sipas "Sygjerimet": kur cilindri (rrumbullakosur) i njërit sy del -2.75 ose më i madh (në vlerë absolute),
 // shtoju fjalisë së mësipërme (të njëjtën fiks anglisht, e pavarur nga gjuha e UI) edhe këtë shënim.
 const WHY_HIGH_CYL_TEXT = 'Available in higher cylinder powers.';
+// Sipas "Sygjerimet": kur cilindri teorik e kalon maksimumin e disponueshëm në katalog (±5.75D), s'e
+// kufizojmë te vlera maksimale dhe s'sugjerojmë asnjë markë — në vend të emrit të markës, shfaqet ky tekst.
+const CYL_UNAVAILABLE_TEXT = 'Unavailable — exceeds all in-stock cylinder ranges';
 
 let currentLang = 'en';
 try {
@@ -757,6 +761,16 @@ function pairBrandLogicCore(od, os, wearType, duration) {
     const toricEye = od.isToric ? od : os;
     const sphereEye = od.isToric ? os : od;
     const toricCands = eligibleToricBrands(toricEye.rounded.S, toricEye.cylMag, wearType, duration, toricEye.axisBase).slice(0, 2);
+
+    if (!toricCands.length) {
+      // Syri toric s'ka asnjë markë të përshtatshme (p.sh. cilindri e kalon gamën maksimale të stokut) —
+      // syri sferik s'ka homolog për t'u përputhur, kështu që merr rekomandimin e tij normal, të pavarur.
+      const ownSphereAlts = eligibleSphereBrands(sphereEye.rounded.S, wearType, duration).slice(0, 2);
+      return od.isToric
+        ? { odAlts: [], osAlts: ownSphereAlts, warning: null }
+        : { osAlts: [], odAlts: ownSphereAlts, warning: null };
+    }
+
     let missingPair = false;
     const seenSphere = new Set();
     const sphereAlts = toricCands.map(tb => {
@@ -856,8 +870,14 @@ function calcEye(sVal, cVal, aVal, vertexMM, cylConv) {
   const sphereSign = clSphereRaw < 0 ? -1 : 1;
   const clSphere = sphereSign * roundSphereStep(Math.abs(clSphereRaw));
 
-  // Cilindër: rrumbullakos te vlera më e afërt reale e disponueshme (0, -0.75, -1.25, ... -5.25)
-  let cylMagRounded = roundToCatalog(Math.abs(clCylRaw), CYL_CATALOG);
+  // Cilindër: rrumbullakos te vlera më e afërt reale e disponueshme (0, -0.75, -1.25, ... -5.75) —
+  // VETËM nëse cilindri teorik bie brenda gamës së katalogut. Nëse e kalon maksimumin (±5.75D), sipas
+  // rregullit të dyqanit NUK e kufizojmë/rrumbullakosim te vlera më e lartë e disponueshme: mbajmë
+  // vlerën e vërtetë teorike (të pa-kufizuar) — si për shfaqje ashtu edhe për kontrollin e markave, që
+  // asnjë markë të mos dalë "e përshtatshme" në mënyrë të rreme — dhe rezultati shënohet "Unavailable".
+  const rawCylMag = Math.abs(clCylRaw);
+  const cylExceedsMax = rawCylMag > CYL_CATALOG_MAX + 0.001;
+  const cylMagRounded = cylExceedsMax ? rawCylMag : roundToCatalog(rawCylMag, CYL_CATALOG);
   let clCyl = clCylRaw < 0 ? -cylMagRounded : cylMagRounded;
   let clAxisBase = a;
   if (clCyl > 0) {
@@ -868,8 +888,7 @@ function calcEye(sVal, cVal, aVal, vertexMM, cylConv) {
 
   const seCL = clSphereRaw + clCylRaw / 2;
   const highPower = Math.abs(F1) >= 4 || Math.abs(F2) >= 4;
-  const cylOutOfCatalog = Math.abs(clCylRaw) > 6.0;
-  const isToric = cylMagRounded > 0;
+  const isToric = cylMagRounded > 0.001;
 
   // Aksi rrumbullakoset më vonë (pas përzgjedhjes së markës në pairBrandLogic), sepse hapi varet nga marka.
   return {
@@ -879,7 +898,7 @@ function calcEye(sVal, cVal, aVal, vertexMM, cylConv) {
     cylMag: cylMagRounded,
     se: seCL,
     highPower: highPower,
-    cylOutOfCatalog: cylOutOfCatalog,
+    cylExceedsMax: cylExceedsMax,
     isToric: isToric
   };
 }
@@ -887,6 +906,7 @@ function calcEye(sVal, cVal, aVal, vertexMM, cylConv) {
 // Vlerësimi i fushave të hyrjes, sipas rregullave të "Sygjerimet". Mesazhet mbeten fikse në anglisht,
 // pikë për pikë siç janë shkruar në sheet (jo të përkthyera sipas gjuhës së UI).
 const VALIDATION_MSGS = {
+  sphereRequired: 'Sphere is required for both eyes. If the prescription is plano, please enter 0.00',
   sphereRange: 'Invalid sphere value. Please enter a value between −20.00 D and +20.00 D.',
   axisRange: 'Invalid axis value. Please enter a value between 1° and 180°',
   axisRequired: 'Axis is required when the cylinder value is not 0. Please enter an axis between 1° and 180°',
@@ -897,10 +917,10 @@ const VALIDATION_MSGS = {
 // Kthen mesazhin e gabimit të parë të gjetur për një sy (Sferë → Cilindër/konventë → Aks), ose null nëse s'ka gabim.
 function validateEyeInputs(sVal, cVal, aVal, cylConv) {
   const sRaw = (sVal || '').trim();
-  if (sRaw !== '') {
-    const s = parseFloat(sRaw);
-    if (isNaN(s) || s < -20 || s > 20) return VALIDATION_MSGS.sphereRange;
-  }
+  // Sfera është e detyrueshme për të dy sytë — bosh s'trajtohet kurrë si 0.00 (plano duhet shkruar shprehimisht).
+  if (sRaw === '') return VALIDATION_MSGS.sphereRequired;
+  const s = parseFloat(sRaw);
+  if (isNaN(s) || s < -20 || s > 20) return VALIDATION_MSGS.sphereRange;
 
   const cRaw = (cVal || '').trim();
   const c = cRaw === '' ? 0 : parseFloat(cRaw);
@@ -1031,6 +1051,9 @@ document.getElementById('calcBtn').addEventListener('click', function() {
     if (res.alts && res.alts.length) {
       return { lines: res.alts.map(b => b.name), warn: false };
     }
+    if (res.cylExceedsMax) {
+      return { lines: [CYL_UNAVAILABLE_TEXT], warn: true };
+    }
     return { lines: [t('outOfStock')], warn: true };
   }
 
@@ -1065,7 +1088,7 @@ document.getElementById('calcBtn').addEventListener('click', function() {
   if ((!od.error && od.highPower) || (!os.error && os.highPower)) {
     warnings.push(t('warnHighPower'));
   }
-  if ((!od.error && od.cylOutOfCatalog) || (!os.error && os.cylOutOfCatalog)) {
+  if ((!od.error && od.cylExceedsMax) || (!os.error && os.cylExceedsMax)) {
     warnings.push(t('warnCylOutOfCatalog'));
   }
   if (pairWarning) {
@@ -1078,7 +1101,10 @@ document.getElementById('calcBtn').addEventListener('click', function() {
   const whyBox = document.getElementById('whyBox');
   // Sipas "Sygjerimet": kur cilindri (rrumbullakosur) i njërit sy del -2.75 ose më i madh, tregohet
   // VETËM ky shënim (jo teksti sipas Wear type) — i zëvendëson, s'shtohet mbi të.
-  const highCyl = (!od.error && od.cylMag >= 2.75 - 0.001) || (!os.error && os.cylMag >= 2.75 - 0.001);
+  // "Available in higher cylinder powers" nënkupton që KEMI lente për atë gamë (deri 5.75D) — nëse cilindri
+  // e kalon vetë maksimumin (cylExceedsMax), s'vlen kjo fjali, sepse s'ka fare produkt të disponueshëm.
+  const highCyl = (!od.error && !od.cylExceedsMax && od.cylMag >= 2.75 - 0.001) ||
+    (!os.error && !os.cylExceedsMax && os.cylMag >= 2.75 - 0.001);
   whyBox.innerHTML = '<strong>' + WHY_LENSES_TITLE + '</strong> ' +
     (highCyl ? WHY_HIGH_CYL_TEXT : WHY_TEXT[wearType]);
 
